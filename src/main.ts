@@ -497,7 +497,7 @@ function renderSources(): void {
     ],
     [
       'Reduction over prior state of the art',
-      `${REDUCTION_FACTOR.min}–${REDUCTION_FACTOR.max}×`,
+      `${Math.floor(REDUCTION_FACTOR.min)}–${Math.floor(REDUCTION_FACTOR.max)}×`,
       REDUCTION_FACTOR.provenance,
       REDUCTION_FACTOR.cite,
     ],
