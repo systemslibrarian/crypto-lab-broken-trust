@@ -222,6 +222,25 @@ main {
 input[type='range'] { width: 100%; accent-color: var(--accent); }
 output { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent); }
 
+/* ---- Predict widget ---- */
+.predict {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem;
+  background: var(--bg-elev-2); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-anchor, var(--accent-paper));
+  border-radius: 8px; padding: 0.6rem 0.85rem; margin: 0.75rem 0;
+}
+.predict-q { font-size: 0.92rem; font-weight: 600; }
+.predict-btns { display: inline-flex; gap: 0.4rem; }
+.predict-btn {
+  border: 1px solid var(--border); background: var(--bg-elev); color: var(--text);
+  border-radius: 999px; padding: 0.3rem 0.9rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+.predict-btn:hover { border-color: var(--accent); }
+.predict-btn.chosen { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.predict-fb { flex-basis: 100%; font-size: 0.88rem; min-height: 1em; }
+.predict-fb.correct { color: var(--ok); }
+.predict-fb.incorrect { color: var(--danger); }
+
 .play-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.5rem 0 1rem; }
 .play-btn, .step-btn, .reset-btn {
   border: 1px solid var(--accent);

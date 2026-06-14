@@ -1312,6 +1312,7 @@ function onEngineChanged(): void {
   computeLandscape();
   computeAltRuns();
   renderContrast();
+  resetPredict(); // settings changed — the previous guess no longer applies
 }
 
 // ---------------------------------------------------------------------------
@@ -1347,6 +1348,45 @@ function renderTierStepper(): void {
     const t = Number(c.dataset.tier);
     c.classList.toggle('active', t === activeTier);
     c.classList.toggle('done', t < activeTier);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Predict — turn passive watching into an active guess before playing
+// ---------------------------------------------------------------------------
+function predictWhy(willConverge: boolean): string {
+  if (willConverge) {
+    return 'enough clean relations pin the key — the score rolls all the way to 0 and the exact subkey is recovered. Watch it descend.';
+  }
+  return noiseP > 0
+    ? 'under noise the score can’t reach exactly 0 (flipped bits always violate), though the key may still be recovered — watch where it settles.'
+    : 'too few relations to pin the key here, so the descent stalls above 0. Add relations and try again.';
+}
+
+function resetPredict(): void {
+  const fb = document.getElementById('predict-fb');
+  if (fb) {
+    fb.textContent = '';
+    fb.className = 'predict-fb';
+  }
+  document.querySelectorAll('.predict-btn').forEach((x) => x.classList.remove('chosen'));
+}
+
+function setupPredict(): void {
+  const fb = el('predict-fb');
+  const btns = Array.from(document.querySelectorAll('.predict-btn')) as HTMLButtonElement[];
+  for (const b of btns) {
+    b.addEventListener('click', () => {
+      const guess = b.dataset.guess === 'yes';
+      const willConverge = result.converged; // the deterministic outcome of this run
+      const correct = guess === willConverge;
+      btns.forEach((x) => x.classList.toggle('chosen', x === b));
+      fb.className = `predict-fb ${correct ? 'correct' : 'incorrect'}`;
+      fb.innerHTML = correct
+        ? `✓ Correct — ${predictWhy(willConverge)}`
+        : `✗ Not quite — actually ${willConverge ? 'yes' : 'no'}: ${predictWhy(willConverge)}`;
+      play();
+    });
   }
 }
 
@@ -1466,6 +1506,7 @@ function init(): void {
   buildTeachingPresets();
   buildTierStepper();
   setupHelp();
+  setupPredict();
   setupMicroscope();
   buildAxisSelectors();
   setupLandscapeInteraction();
