@@ -94,19 +94,27 @@
             <span class="stat-value" id="ro-seed">—</span>
           </div>
           <div class="stat">
-            <span class="stat-label">Relations (leaks)</span>
+            <span class="stat-label">Relations (leaks)
+              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What is a relation?">?</button><span class="help-pop" role="note" hidden>Each <strong>relation</strong> is one informative constraint from a <strong>single leaked bit</strong> of the per-signature masking randomness, paired with public signature data. More leaks ⇒ the true key stands out more sharply.</span></span>
+            </span>
             <span class="stat-value" id="ro-rels">—</span>
           </div>
           <div class="stat">
-            <span class="stat-label">Noise p (bit-flip)</span>
+            <span class="stat-label">Noise p (bit-flip)
+              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What is noise p?">?</button><span class="help-pop" role="note" hidden>The leaked bit is <strong>flipped with probability p</strong> (a corrupted side-channel reading). The score then never hits exactly 0 even at the true key — but many relations still point downhill on average, so recovery can survive surprising amounts of noise.</span></span>
+            </span>
             <span class="stat-value" id="ro-noise">—</span>
           </div>
           <div class="stat">
-            <span class="stat-label">Current tier</span>
+            <span class="stat-label">Current tier
+              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What are tiers?">?</button><span class="help-pop" role="note" hidden>Hill-climbing runs in <strong>tiers</strong>: <strong>coarse</strong> coordinate steps first to cross the landscape quickly, then progressively <strong>finer</strong> steps to settle into the exact key.</span></span>
+            </span>
             <span class="stat-value" id="ro-tier">—</span>
           </div>
           <div class="stat">
-            <span class="stat-label">Best score (violations)</span>
+            <span class="stat-label">Best score (violations)
+              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What is the score?">?</button><span class="help-pop" role="note" hidden>The verification <strong>score</strong> = how many leaked relations the current candidate <strong>violates</strong>. Noiseless it is <strong>0 exactly at the true key</strong> — the unique global minimum that local search rolls down to. No lattice reduction needed.</span></span>
+            </span>
             <span class="stat-value big" id="ro-score">—</span>
           </div>
           <div class="stat">
@@ -261,6 +269,19 @@
       <!-- 4. Mechanism explainer -->
       <section class="card" id="mechanism">
         <h2>How one leaked bit breaks the silence</h2>
+        <aside class="analogy">
+          <span class="analogy-tag">Analogy</span>
+          <p>
+            Picture a <strong>marble in a bumpy bowl</strong>. With no leaked bits the bowl is
+            perfectly flat — the marble sits anywhere and tells you nothing. <strong>Each leaked
+            bit carves the bowl a little</strong>; collect thousands and a single deep low point
+            forms — the true key. <strong>Hill-climbing is just letting the marble roll down</strong>:
+            big rolls first (coarse tier), then gentle settling (fine tiers). <strong>Noise shakes
+            the bowl</strong> — a little is fine, too much and the marble can't find the bottom.
+            <span class="muted">(An analogy, not the math — the real "bowl" is a count of violated
+            leakage relations.)</span>
+          </p>
+        </aside>
         <ol class="mech-steps">
           <li>
             <strong>Rejection sampling normally hides the key.</strong> ML-DSA forms a response

@@ -319,6 +319,39 @@ figcaption { margin-top: 0.5rem; font-size: 0.85rem; }
 .trials-rate-num { font-size: 2rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
 .trials-rate-label { margin-left: 0.5rem; color: var(--text-muted); }
 
+/* ---- Contextual help dots ---- */
+.help-wrap { position: relative; display: inline-block; }
+.help-dot {
+  width: 1.05rem; height: 1.05rem; border-radius: 50%; padding: 0;
+  border: 1px solid var(--border); background: var(--bg-elev);
+  color: var(--text-muted); font-size: 0.7rem; font-weight: 700; line-height: 1;
+  cursor: pointer; vertical-align: middle;
+}
+.help-dot:hover { border-color: var(--accent); color: var(--accent); }
+.help-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.help-pop {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 30;
+  width: min(280px, 72vw);
+  background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px;
+  padding: 0.6rem 0.75rem; box-shadow: var(--shadow);
+  font-size: 0.82rem; font-weight: 400; line-height: 1.5; color: var(--text);
+  text-transform: none; letter-spacing: normal; white-space: normal;
+}
+.help-pop[hidden] { display: none; }
+
+/* ---- Physical analogy ---- */
+.analogy {
+  background: var(--bg-elev-2); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-toy); border-radius: 8px;
+  padding: 0.8rem 1rem; margin: 0 0 1rem;
+}
+.analogy p { margin: 0; font-size: 0.94rem; }
+.analogy-tag {
+  display: inline-block; font-size: 0.66rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-toy);
+  margin-bottom: 0.3rem;
+}
+
 /* ---- Mechanism ---- */
 .mech-steps { margin: 0.5rem 0; padding-left: 1.3rem; }
 .mech-steps li { margin: 0.6rem 0; }

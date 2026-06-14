@@ -1351,6 +1351,40 @@ function renderTierStepper(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Contextual help — (?) dots toggle a small popover with an explanation
+// ---------------------------------------------------------------------------
+function setupHelp(): void {
+  const dots = Array.from(document.querySelectorAll('.help-dot')) as HTMLButtonElement[];
+  const closeAll = () => {
+    for (const d of dots) {
+      const pop = d.nextElementSibling as HTMLElement | null;
+      if (pop) {
+        pop.hidden = true;
+        d.setAttribute('aria-expanded', 'false');
+      }
+    }
+  };
+  for (const d of dots) {
+    const pop = d.nextElementSibling as HTMLElement | null;
+    if (!pop) continue;
+    d.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const wasOpen = !pop.hidden;
+      closeAll();
+      if (!wasOpen) {
+        pop.hidden = false;
+        d.setAttribute('aria-expanded', 'true');
+      }
+    });
+  }
+  document.addEventListener('click', () => closeAll());
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAll();
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Render orchestration
 // ---------------------------------------------------------------------------
 function renderLive(): void {
@@ -1431,6 +1465,7 @@ function init(): void {
 
   buildTeachingPresets();
   buildTierStepper();
+  setupHelp();
   setupMicroscope();
   buildAxisSelectors();
   setupLandscapeInteraction();
