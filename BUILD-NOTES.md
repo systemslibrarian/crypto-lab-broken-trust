@@ -4,8 +4,34 @@
 Uncovering ML-DSA Subkeys with Scarce Leakage and Local Optimization"*, IACR
 ePrint **2026/472** (published 2026-03-06). <https://eprint.iacr.org/2026/472>
 
-`npm test` → **31 tests green**. `npm run build` → clean; `dist/` emits with base
+`npm test` → **41 tests green**. `npm run build` → clean; `dist/` emits with base
 `/crypto-lab-broken-trust/` (asset URLs verified: `/crypto-lab-broken-trust/assets/…`).
+
+---
+
+## Phase 1 — visualization & intuition upgrades
+
+Model (pure, deterministic, tested — see `model.test.ts`):
+- `HillClimbConfig.start?`: optional explicit initial candidate (rounded/clamped to
+  the search box) so the UI can let users **click the landscape to set a start**.
+- `runTrials(relations, noiseP, {trials, seed})`: pure repeated-trial statistics
+  (success rate + steps-to-recover distribution) — the toy's own mirror of the
+  paper's 10/10 methodology. 10 new tests (41 total).
+
+UI (`main.ts` / `index.html` / `styles.css`):
+- **Score landscape** is now the literal "rolling downhill" view: a tier-colored,
+  fading **descent path with a moving particle**, **click-to-set-start**, **hover
+  for the exact score**, a **colorblind-safe viridis** scale, and a **legend**
+  marking the true-key minimum. Labeled honestly as a 2-D slice/projection of the
+  8-D landscape.
+- **Descent chart**: shaded, labeled **tier bands** (coarse → fine) and an
+  off-by-default **alternate-runs overlay** (different random starts) to show spread.
+- **Run-N-trials** card: success rate + steps histogram at the current settings,
+  framed as the toy-scale mirror of the paper's 10/10 criterion (badged `toy`).
+- **Coefficient lock-in pulse** (green flash as a coordinate hits its true value;
+  respects reduced-motion) and a **tier stepper** (Tier 1 coarse → 2 → 3 fine).
+
+All new toy numbers remain badged `toy · illustrative`; zero new runtime deps.
 
 ---
 
