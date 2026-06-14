@@ -30,8 +30,10 @@ import {
   RELATIONS_TO_RECOVER,
   REDUCTION_FACTOR,
   NOISE_TOLERANCE_MAX_P,
+  NOISY_RELATIONS,
   PRIOR_WORK,
   ML_DSA_SETS,
+  LEAKAGE_INDICES,
 } from './paperData';
 
 // ---------------------------------------------------------------------------
@@ -544,17 +546,18 @@ function renderSources(): void {
     `res.converged;                            // descended to score 0\n` +
     `res.best;                                 // === inst.secret  (recovered)\n\n` +
     `// Paper (ePrint 2026/472), transcribed in paperData.ts — NOT computed here:\n` +
-    `//   relations to recover : ${fmt(RELATIONS_TO_RECOVER.min)}–${fmt(RELATIONS_TO_RECOVER.max)}\n` +
-    `//   reduction vs prior   : ${REDUCTION_FACTOR.min}–${REDUCTION_FACTOR.max}×\n` +
-    `//   noise tolerance      : up to ~${Math.round(NOISE_TOLERANCE_MAX_P.value * 100)}%`;
+    `//   relations to recover : ${fmt(RELATIONS_TO_RECOVER.min)}–${fmt(RELATIONS_TO_RECOVER.max)}  (Table 2)\n` +
+    `//   reduction vs prior   : ${Math.floor(REDUCTION_FACTOR.min)}–${Math.floor(REDUCTION_FACTOR.max)}×  (Table 3: 37.0 / 42.8 / 68.5)\n` +
+    `//   noise tolerance      : up to ~${Math.round(NOISE_TOLERANCE_MAX_P.value * 100)}%  (Table 4, ${fmt(NOISY_RELATIONS.min)}–${fmt(NOISY_RELATIONS.max)} relations)`;
 }
 
 function renderStickyHeadline(): void {
+  const redDisp = `${Math.floor(REDUCTION_FACTOR.min)}–${Math.floor(REDUCTION_FACTOR.max)}× fewer`;
   el('sh-relations').textContent = `${Math.round(RELATIONS_TO_RECOVER.min / 1000)}k–${Math.round(RELATIONS_TO_RECOVER.max / 1000)}k`;
-  el('sh-reduction').textContent = `${REDUCTION_FACTOR.min}–${REDUCTION_FACTOR.max}× fewer`;
+  el('sh-reduction').textContent = redDisp;
   el('sh-noise').textContent = `${Math.round(NOISE_TOLERANCE_MAX_P.value * 100)}%`;
   el('ov-paper-rels').textContent = `${fmt(RELATIONS_TO_RECOVER.min)}–${fmt(RELATIONS_TO_RECOVER.max)}`;
-  el('ov-paper-reduction').textContent = `${REDUCTION_FACTOR.min}–${REDUCTION_FACTOR.max}× fewer`;
+  el('ov-paper-reduction').textContent = redDisp;
   el('ov-paper-noise').textContent = `feasible up to ~${Math.round(NOISE_TOLERANCE_MAX_P.value * 100)}% bit-flip p`;
 }
 
@@ -878,14 +881,38 @@ function renderReplay(): void {
   const tabs = Array.from(el('replay-tabs').children) as HTMLButtonElement[];
   tabs.forEach((b, i) => b.setAttribute('aria-selected', String(i === replaySel)));
   const s = ML_DSA_SETS[replaySel];
+
+  // Table 2 — exact minimum informative relations by leakage index j.
+  const t2Head = LEAKAGE_INDICES.map((j) => `<th>j=${j}</th>`).join('');
+  const t2Row = LEAKAGE_INDICES.map((j) => `<td>${fmt(s.relationsByIndex[j])}</td>`).join('');
+  const exactTable =
+    `<table class="replay-table"><caption>Exact setting — min informative relations (Table 2)</caption>` +
+    `<thead><tr><th>leakage index</th>${t2Head}</tr></thead>` +
+    `<tbody><tr><td>relations</td>${t2Row}</tr></tbody></table>`;
+
+  // Table 3 — high-leakage reduction vs Damm et al. [5].
+  const hl = s.highLeakage;
+  const reductionLine = hl
+    ? `<dt>Reduction vs Damm et al. [5] (j ≥ ${hl.jAtLeast})</dt>` +
+      `<dd>${fmt(hl.dammRelations)} → ${fmt(hl.ourRelations)} relations = <strong>${hl.factor}× fewer</strong></dd>`
+    : '';
+
+  // Table 4 — noisy p = 0.45.
+  const noisyKeys = Object.keys(s.noisyByIndex ?? {});
+  const noisyLine = noisyKeys.length
+    ? `<dt>Noisy setting (p = 0.45, Table 4)</dt><dd>` +
+      noisyKeys.map((j) => `j=${j}: ${fmt((s.noisyByIndex as Record<string, number>)[j])}`).join(' · ') +
+      ` relations</dd>`
+    : `<dt>Noisy setting (p = 0.45)</dt><dd class="muted">not yet evaluated for ${s.label} — preliminary results cover ML-DSA-44 &amp; -87 only (paper §6.2)</dd>`;
+
   el('replay-panel').innerHTML =
     `<dl>` +
-    `<dt>Parameter set</dt><dd>${s.label} · NIST level ${s.nistLevel} · (k, l) = (${s.k}, ${s.l}) <span class="muted">[FIPS 204]</span></dd>` +
-    `<dt>Informative relations to recover a subkey</dt><dd>${fmt(RELATIONS_TO_RECOVER.min)}–${fmt(RELATIONS_TO_RECOVER.max)} <span class="badge badge-paper">paper-measured · band</span></dd>` +
-    `<dt>Reduction vs prior state of the art</dt><dd>${REDUCTION_FACTOR.min}–${REDUCTION_FACTOR.max}× fewer</dd>` +
-    `<dt>Noise tolerance (bit-flip p)</dt><dd>feasible up to ~${Math.round(NOISE_TOLERANCE_MAX_P.value * 100)}%</dd>` +
+    `<dt>Parameter set</dt><dd>${s.label} · NIST level ${s.nistLevel} · (k, l) = (${s.k}, ${s.l}) · η = ${s.eta} · τ = ${s.tau} · β = τ·η = ${s.beta} · γ₁ = 2^${s.gamma1Exp} <span class="muted">[Table 1]</span></dd>` +
+    reductionLine +
+    noisyLine +
     `</dl>` +
-    `<p class="muted">The 5,000–35,000 band is the paper's aggregate across all parameter sets and leakage-bit indices; exact per-set counts await the committed PDF (see Known Gaps).</p>`;
+    exactTable +
+    `<p class="muted">${s.cite}. <span class="badge badge-paper">paper-measured</span> The 5,000–35,000 headline is the min/max across all sets and indices here (min ${fmt(RELATIONS_TO_RECOVER.min)} = ML-DSA-87 j=6; max ${fmt(RELATIONS_TO_RECOVER.max)} = ML-DSA-65 j=9). Noisy recovery costs ${fmt(NOISY_RELATIONS.min)}–${fmt(NOISY_RELATIONS.max)} relations.</p>`;
 }
 
 // ---------------------------------------------------------------------------

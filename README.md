@@ -44,10 +44,12 @@ attack tool. No real ML-DSA key, no real signatures, no captured side channel. T
 honesty bridge is explicit throughout: every **toy · illustrative** number is
 badged distinctly from every **paper-measured** number.
 
-> ⚠️ The IACR PDF is served behind Cloudflare and could not be machine-fetched
-> during the build, so `2026-472.pdf` is **not yet committed** — the paper figures
-> were transcribed from the abstract. Commit the real PDF and re-verify against
-> `PAPER-NOTES.md`. Details in `BUILD-NOTES.md`.
+> ℹ️ **Provenance.** The paper figures are transcribed from the **full text**
+> (Tables 1–4) into [`src/paperData.ts`](src/paperData.ts) and pinned by tests — the
+> exact per-set, per-leakage-index relation counts (Table 2 → the 5,000–35,000 band),
+> the 37.0/42.8/68.5× reductions (Table 3), and the noisy-setting results (Table 4).
+> The IACR PDF is Cloudflare-gated and is **not redistributed in this repo**; see
+> `PAPER-NOTES.md` for the full transcription and `BUILD-NOTES.md` for the details.
 
 ## When to Use It
 

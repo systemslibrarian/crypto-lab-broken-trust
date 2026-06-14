@@ -38,8 +38,11 @@ import {
   RELATIONS_TO_RECOVER,
   REDUCTION_FACTOR,
   NOISE_TOLERANCE_MAX_P,
+  NOISY_RELATIONS,
   PRIOR_WORK,
   ML_DSA_SETS,
+  LEAKAGE_INDICES,
+  type LeakageIndex,
 } from './paperData';
 
 // ===========================================================================
@@ -285,51 +288,109 @@ describe('purity of the model core', () => {
 });
 
 // ===========================================================================
-// PAPER-DATA TRANSCRIPTION GUARDS — fail loudly if a figure was mistyped.
-// (5,000–35,000 relations; 37–68× reduction; ≤45% noise.)
+// PAPER-DATA TRANSCRIPTION GUARDS — fail loudly if a transcribed table value was
+// mistyped. Now pinned against the exact Tables 1–4 of ePrint 2026/472.
 // ===========================================================================
 describe('paper-data transcription guards (ePrint 2026/472)', () => {
-  it('relation counts lie within the stated 5,000–35,000 band', () => {
+  it('relation band (5,000–35,000) equals the min/max of Table 2', () => {
     expect(RELATIONS_TO_RECOVER.min).toBe(5_000);
     expect(RELATIONS_TO_RECOVER.max).toBe(35_000);
-    expect(RELATIONS_TO_RECOVER.min).toBeLessThan(RELATIONS_TO_RECOVER.max);
-    expect(RELATIONS_TO_RECOVER.min).toBeGreaterThanOrEqual(5_000);
-    expect(RELATIONS_TO_RECOVER.max).toBeLessThanOrEqual(35_000);
+    // Derive the band from every Table-2 cell and confirm it matches the stated band.
+    const all = ML_DSA_SETS.flatMap((s) => LEAKAGE_INDICES.map((j) => s.relationsByIndex[j]));
+    expect(Math.min(...all)).toBe(RELATIONS_TO_RECOVER.min);
+    expect(Math.max(...all)).toBe(RELATIONS_TO_RECOVER.max);
+    // Every cell is inside the stated 5k–35k band.
+    for (const v of all) {
+      expect(v).toBeGreaterThanOrEqual(5_000);
+      expect(v).toBeLessThanOrEqual(35_000);
+    }
   });
 
-  it('reduction factor lies within the stated 37–68× span', () => {
-    expect(REDUCTION_FACTOR.min).toBe(37);
-    expect(REDUCTION_FACTOR.max).toBe(68);
-    expect(REDUCTION_FACTOR.min).toBeLessThan(REDUCTION_FACTOR.max);
-    expect(REDUCTION_FACTOR.min).toBeGreaterThanOrEqual(37);
-    expect(REDUCTION_FACTOR.max).toBeLessThanOrEqual(68);
+  it('Table 2 exact cells (spot-checks of the corners)', () => {
+    const get = (label: string) => ML_DSA_SETS.find((s) => s.label === label)!;
+    expect(get('ML-DSA-87').relationsByIndex[6]).toBe(5_000); // global min
+    expect(get('ML-DSA-65').relationsByIndex[9]).toBe(35_000); // global max
+    expect(get('ML-DSA-44').relationsByIndex[6]).toBe(6_000);
+    expect(get('ML-DSA-65').relationsByIndex[6]).toBe(5_500);
   });
 
-  it('noise tolerance is the stated ~45% ceiling (≤ 0.45)', () => {
+  it('reduction factors equal Table 3 (37.0 / 42.8 / 68.5) and span 37–68×', () => {
+    const get = (label: string) => ML_DSA_SETS.find((s) => s.label === label)!.highLeakage!;
+    expect(get('ML-DSA-44').factor).toBeCloseTo(37.0, 5);
+    expect(get('ML-DSA-87').factor).toBeCloseTo(42.8, 5);
+    expect(get('ML-DSA-65').factor).toBeCloseTo(68.5, 5);
+    expect(REDUCTION_FACTOR.min).toBe(37.0);
+    expect(REDUCTION_FACTOR.max).toBe(68.5);
+    // The stated span equals the min/max of the per-set factors.
+    const factors = ML_DSA_SETS.map((s) => s.highLeakage!.factor);
+    expect(Math.min(...factors)).toBeCloseTo(REDUCTION_FACTOR.min, 5);
+    expect(Math.max(...factors)).toBeCloseTo(REDUCTION_FACTOR.max, 5);
+  });
+
+  it('Table 3 reduction factors are consistent with Tables 2 & the Damm baseline', () => {
+    for (const s of ML_DSA_SETS) {
+      const hl = s.highLeakage!;
+      // "Our" relation count in Table 3 matches the Table 2 cell at j = jAtLeast.
+      expect(hl.ourRelations).toBe(s.relationsByIndex[hl.jAtLeast as LeakageIndex]);
+      // factor = damm / ours, truncated to one decimal (paper: 68.571→68.5, 42.857→42.8).
+      const ratio = hl.dammRelations / hl.ourRelations;
+      expect(Math.floor(ratio * 10) / 10).toBeCloseTo(hl.factor, 5);
+      expect(hl.factor).toBeLessThanOrEqual(ratio); // a conservative "≥" claim in the paper
+    }
+  });
+
+  it('noise tolerance is the stated 45% ceiling, with the noisy cost band', () => {
     expect(NOISE_TOLERANCE_MAX_P.value).toBeCloseTo(0.45, 5);
     expect(NOISE_TOLERANCE_MAX_P.value).toBeLessThanOrEqual(0.45);
     expect(NOISE_TOLERANCE_MAX_P.value).toBeGreaterThan(0.4);
+    // Noisy setting costs millions of relations (Table 4): 2M–6.5M.
+    expect(NOISY_RELATIONS.min).toBe(2_000_000);
+    expect(NOISY_RELATIONS.max).toBe(6_500_000);
+    const noisy = ML_DSA_SETS.flatMap((s) => Object.values(s.noisyByIndex ?? {}));
+    expect(Math.min(...noisy)).toBe(NOISY_RELATIONS.min);
+    expect(Math.max(...noisy)).toBe(NOISY_RELATIONS.max);
+  });
+
+  it('only ML-DSA-44 and -87 have noisy data (ML-DSA-65 pending, per §6.2)', () => {
+    const withNoisy = ML_DSA_SETS.filter((s) => Object.keys(s.noisyByIndex ?? {}).length > 0).map((s) => s.label);
+    expect(withNoisy.sort()).toEqual(['ML-DSA-44', 'ML-DSA-87']);
+  });
+
+  it('Table 1 scheme parameters (β = τ·η, NIST levels, dimensions)', () => {
+    const want = {
+      'ML-DSA-44': { k: 4, l: 4, eta: 2, tau: 39, beta: 78, nistLevel: 2 },
+      'ML-DSA-65': { k: 6, l: 5, eta: 4, tau: 49, beta: 196, nistLevel: 3 },
+      'ML-DSA-87': { k: 8, l: 7, eta: 2, tau: 60, beta: 120, nistLevel: 5 },
+    } as const;
+    for (const s of ML_DSA_SETS) {
+      const w = want[s.label as keyof typeof want];
+      expect({ k: s.k, l: s.l, eta: s.eta, tau: s.tau, beta: s.beta, nistLevel: s.nistLevel }).toEqual(w);
+      expect(s.beta).toBe(s.tau * s.eta); // β = τ·η (Table 1)
+    }
   });
 
   it('metadata + prior-work attribution are present and correct', () => {
     expect(PAPER.eprint).toBe('2026/472');
-    expect(PAPER.authors).toContain('Jean-Pierre Seifert');
-    expect(PAPER.authors).toContain('Marian Margraf');
+    expect(PAPER.authors.some((a) => a.includes('Jean-Pierre Seifert'))).toBe(true);
+    expect(PAPER.authors.some((a) => a.includes('Marian Margraf'))).toBe(true);
     expect(PAPER.authors).toHaveLength(4);
     const names = PRIOR_WORK.map((w) => w.authors);
-    expect(names).toContain('Liu et al.');
-    expect(names).toContain('Damm et al.');
+    expect(names.some((n) => n.includes('Liu et al.'))).toBe(true);
+    expect(names.some((n) => n.includes('Damm et al.'))).toBe(true);
+    // Real bibliographic anchors transcribed (not placeholders).
+    expect(PRIOR_WORK.some((w) => /TIFS|2021/.test(w.cite))).toBe(true);
+    expect(PRIOR_WORK.some((w) => /PKC 2025|2025\/820/.test(w.cite))).toBe(true);
   });
 
-  it('every paper figure carries a non-empty citation', () => {
-    for (const r of [RELATIONS_TO_RECOVER, REDUCTION_FACTOR]) {
+  it('every paper figure carries a non-empty citation tied to a table/text', () => {
+    for (const r of [RELATIONS_TO_RECOVER, REDUCTION_FACTOR, NOISY_RELATIONS]) {
       expect(r.cite.length).toBeGreaterThan(0);
       expect(r.provenance.startsWith('paper')).toBe(true);
     }
     expect(NOISE_TOLERANCE_MAX_P.cite.length).toBeGreaterThan(0);
   });
 
-  it('lists the three ML-DSA parameter sets the band spans (FIPS 204 names)', () => {
+  it('lists the three ML-DSA parameter sets (FIPS 204 names)', () => {
     expect(ML_DSA_SETS.map((s) => s.label)).toEqual(['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87']);
   });
 });

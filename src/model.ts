@@ -294,7 +294,7 @@ export interface HillClimbResult {
  * 2^(lastTier - t) down to 1, each in both directions.
  */
 function stepSet(tier: number, tiers: number): number[] {
-  const coarsest = Math.max(1, tiers - 1 - tier); // tier 0 -> largest exponent
+  const coarsest = Math.max(0, tiers - 1 - tier); // tier 0 -> largest exponent
   const steps: number[] = [];
   for (let mag = 1 << coarsest; mag >= 1; mag >>= 1) {
     steps.push(mag, -mag);

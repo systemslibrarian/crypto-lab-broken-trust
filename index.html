@@ -257,6 +257,14 @@
           average, so the count-based score keeps its minimum near the truth. That is why the paper still
           recovers keys at <strong>45%</strong> noise. <span class="badge badge-paper">paper-measured</span>
         </p>
+        <p class="muted faithful-note">
+          <strong>Faithful-shape note.</strong> In real ML-DSA the challenge <code>c</code> has exactly
+          <code>τ</code> nonzero ±1 entries (τ = 39 / 49 / 60 for ML-DSA-44 / -65 / -87), and a leaked bit
+          turns a signature coefficient <code>z = ⟨c,x⟩ + y</code> into a two-sided <em>interval</em>
+          constraint <code>|⟨c,x⟩ − z̃| ≤ β</code> with <code>β = τ·η</code>. The toy above uses a simpler
+          one-sided threshold (<code>⟨a,s⟩ ≥ τ</code>) as the stand-in: same idea — one leaked bit ⇒ one
+          linear constraint whose violations score a candidate — at a size you can watch.
+        </p>
       </section>
 
       <!-- 4b. No leakage vs leakage — why the hill exists at all -->
@@ -436,24 +444,30 @@
             relation counts and noise ceiling are <em>its own</em>, never the paper's 5,000–35,000 or 45%.
           </li>
           <li>
-            <strong>The paper's numbers are transcribed, not reproduced.</strong> 5,000–35,000 relations,
-            37–68× reduction, and ~45% noise tolerance are read from ePrint 2026/472 and shown as
+            <strong>The paper's numbers are transcribed, not reproduced.</strong> The exact per-set,
+            per-leakage-index counts (Table 2 → the 5,000–35,000 band), the 37.0/42.8/68.5× reductions
+            (Table 3), and the ~45% noise result (Table 4) are read from ePrint 2026/472 and shown as
             <span class="badge badge-paper">paper-measured</span>; this page does not re-run the real attack.
           </li>
           <li>
-            <strong>The toy leak is a stand-in.</strong> A real informative relation comes from a leaked bit
-            of masking randomness paired with public signature data; the toy models it as a public-threshold
-            comparison on <code>⟨a, s⟩</code>. Same <em>shape</em> (one halfspace per leak), not the same
-            arithmetic.
+            <strong>The noisy result is preliminary and costly.</strong> The paper's 45% figure was measured
+            for ML-DSA-44 and -87 only (j ∈ {6,7,8}; ML-DSA-65 pending) and needs <strong>2–6.5 million</strong>
+            relations — two orders of magnitude more than the exact setting. "Survives 45% noise" is real, not free.
+          </li>
+          <li>
+            <strong>The toy leak is a stand-in.</strong> A real informative relation is a two-sided interval
+            <code>|⟨c,x⟩ − z̃| ≤ β</code> (β = τ·η) derived from one leaked masking bit plus public signature
+            data; the toy models it as a one-sided threshold on <code>⟨a, s⟩</code>. Same idea (one leaked bit ⇒
+            one linear constraint), simpler arithmetic.
           </li>
           <li>
             <strong>This models recovery GIVEN leakage, not how leakage is obtained.</strong> Acquiring real
-            masking-bit leakage (power/EM/cache side channels) is out of scope and not simulated.
+            masking-bit leakage (power/EM/cache side channels, or a stuck-at fault) is out of scope and not simulated.
           </li>
           <li>
-            <strong>PDF not auto-verifiable here.</strong> The IACR PDF is served behind Cloudflare and was
-            not machine-fetchable during the build; figures were transcribed from the abstract. The committed
-            <code>2026-472.pdf</code> is the authority — see <code>BUILD-NOTES.md</code>.
+            <strong>Figures verified against the full paper text.</strong> Tables 1–4 of ePrint 2026/472 were
+            transcribed in full (see <code>PAPER-NOTES.md</code>); the PDF binary is intentionally not
+            redistributed in this repo. The IACR site is Cloudflare-gated, so it isn't machine-fetched at build time.
           </li>
         </ul>
       </section>

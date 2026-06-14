@@ -1,81 +1,114 @@
 # PAPER-NOTES.md
 
-Every paper number this demo shows, with its source. The source of truth is:
+Every paper number this demo shows, transcribed from the full text with table/section
+citations. Source of truth:
 
-> Carsten Schubert, Niklas Julius Müller, Jean-Pierre Seifert, Marian Margraf,
+> Carsten Schubert (TU Berlin), Niklas Julius Müller (FU Berlin),
+> Jean-Pierre Seifert (TU Berlin), Marian Margraf (FU Berlin),
 > **"Descent into Broken Trust: Uncovering ML-DSA Subkeys with Scarce Leakage and
 > Local Optimization"**, IACR ePrint **2026/472** (published 2026-03-06).
 > <https://eprint.iacr.org/2026/472>
 
-> ⚠️ **PDF provenance.** The IACR PDF is served behind a Cloudflare interstitial
-> and returned **HTTP 403 / a "Just a moment…" challenge** to every automated
-> fetch attempted during the build (`WebFetch`, `curl` with a browser UA). It
-> therefore could **not** be machine-fetched or committed automatically. The
-> figures below were transcribed from the paper's **abstract**, retrieved
-> independently via web search (two retrievals agreeing, and matching the build
-> brief). **Paul must commit the real `2026-472.pdf` manually** and re-verify the
-> exact per-parameter-set table against these notes. See `BUILD-NOTES.md`.
+> **PDF provenance.** The IACR PDF is served behind a Cloudflare interstitial and is
+> not machine-fetchable at build time, so it is **not redistributed in this repo**.
+> The figures below are transcribed from the **full paper text** (Tables 1–4 and the
+> abstract/intro), not just the abstract. The PDF binary is not required for the demo;
+> these notes + the pinned tests are the in-repo record.
 
-## What the paper does (Abstract / §1)
+## What the paper does (Abstract / §1, §3, §4)
 
-ML-DSA (FIPS 204; formerly CRYSTALS-Dilithium) uses **rejection sampling** so that
-released signatures are statistically independent of the secret key. Prior work
-(**Liu et al.**, **Damm et al.**) showed that this independence collapses once an
-attacker learns **even a single bit of the per-signature masking randomness**:
-each leaked bit, paired with public signature/challenge data, yields an
-**informative relation** constraining a secret subkey.
+ML-DSA (FIPS 204; formerly CRYSTALS-Dilithium) uses **rejection sampling** so released
+signatures are statistically independent of the secret key. Prior work — **Liu et al.
+[4]** and **Damm et al. [5]** — showed this collapses once an attacker learns **one bit
+of the per-signature masking randomness `y`**: each leaked bit + the public `(c, z)`
+yields an **informative relation** on a secret subkey `x` (a coefficient polynomial of
+`s1`). Damm et al. solve it by **linear regression**, needing **500,000–2,400,000**
+informative relations.
 
-This paper contributes:
+This paper replaces regression with **local optimization**:
+1. A **verification routine** (§3, Algorithm 1; Theorem 3.1) that scores a candidate
+   subkey using *only* the informative relations — no other secret component, no lattice
+   reduction. A candidate satisfies all relations iff it equals the true subkey (prob → 1).
+2. A **multi-tier hill-climbing optimizer** (§4, Algorithm 4 + §4.3 strategies: multiple
+   sweeps, adaptive block size, lateral moves, frequency-based diversification,
+   perturbation-based restarts). Scoring is **excess-based** (Algorithm 3) in the exact
+   setting and **count-based** (Algorithm 2) under noise (§5.3).
 
-1. A **verification routine** that scores a *candidate* subkey using **only** the
-   collected leakage relations — no other secret component, **no lattice
-   reduction**. The score reaches **zero exactly at the true subkey**.
-2. A **multi-tier hill-climbing optimizer** that iteratively tweaks the candidate
-   to reduce that score, descending to the true key. In the noisy setting a
-   **count-based** score variant is used.
+## Table 1 — ML-DSA parameter sets (§2.1)
 
-## Transcribed figures (the overlay / tests guard these)
+`n = 256` and `q = 8,380,417` for all three.
 
-| Figure | Value | Source |
+| Set | NIST level | (k, ℓ) | η | τ | γ₁ | β = τ·η |
+|---|---|---|---|---|---|---|
+| ML-DSA-44 | 2 | (4, 4) | 2 | 39 | 2¹⁷ | 78 |
+| ML-DSA-65 | 3 | (6, 5) | 4 | 49 | 2¹⁹ | 196 |
+| ML-DSA-87 | 5 | (8, 7) | 2 | 60 | 2¹⁹ | 120 |
+
+## Table 2 — exact setting: min informative relations for 10/10 recovery
+
+Seed 42, T = 100,000 iterations, excess-based scoring, all optimizations enabled.
+
+| leakage index j | ML-DSA-44 | ML-DSA-65 | ML-DSA-87 |
+|---|---|---|---|
+| 6 | 6,000 | 5,500 | **5,000** ← global min |
+| 7 | 11,500 | 11,500 | 9,500 |
+| 8 | 13,500 | 22,500 | 17,500 |
+| 9 | 14,500 | **35,000** ← global max | 17,500 |
+
+→ **The "5,000–35,000" headline band = min/max of this table.** (Min 5,000 = ML-DSA-87,
+j=6; max 35,000 = ML-DSA-65, j=9.) At j=6 every signature is informative, so signature
+counts equal relation counts there: ~5,000 / 5,500 / 6,000 signatures (§Conclusion).
+
+## Table 3 — reduction vs Damm et al. [5] (high-leakage regime)
+
+| | ML-DSA-44 (j ≥ 8) | ML-DSA-65 (j ≥ 9) | ML-DSA-87 (j ≥ 8) |
+|---|---|---|---|
+| Damm et al. [5] | 500,000 | 2,400,000 | 750,000 |
+| This attack | 13,500 | 35,000 | 17,500 |
+| **Reduction factor** | **≥ 37.0×** | **68.5×** | **42.8×** |
+
+→ **The "37–68×" headline = span of these factors** (min 37.0, max 68.5). Factors are
+`Damm / ours` truncated to one decimal (e.g. 2,400,000/35,000 = 68.57 → 68.5).
+
+## Table 4 — noisy setting (p = 0.45), PRELIMINARY
+
+Noise model (Def. 5.1): leaked bit flipped i.i.d. with probability p. p = 0.45 exceeds
+the p = 0.43 maximum tested by Damm et al. **Preliminary:** only ML-DSA-44 and -87, at
+j ∈ {6,7,8}; ML-DSA-65 and other noise levels are future work (§6.2). 4/5-key success.
+
+| leakage index j | ML-DSA-44 | ML-DSA-87 |
 |---|---|---|
-| Informative relations to recover a subkey | **5,000 – 35,000** (across all parameter sets and leakage bit indices) | Abstract |
-| Reduction over previous state of the art | **37× – 68×** fewer relations | Abstract |
-| Noise tolerance (leaked bit flipped i.i.d. with prob. p) | key recovery feasible up to **~45%** | Abstract |
-| Premise (prior work) | recovery from **one leaked bit of masking randomness per signature** | §Introduction, attributing **Liu et al.** and **Damm et al.** |
-| Parameter sets | ML-DSA-44 / -65 / -87 (NIST levels 2 / 3 / 5) | FIPS 204 (named for context; the 5k–35k band is the paper's aggregate) |
+| 6 | 2,000,000 | 2,000,000 |
+| 7 | 4,000,000 † | 4,000,000 |
+| 8 | 5,000,000 | 6,500,000 † |
 
-Exact abstract wording transcribed:
+→ Noisy recovery costs **2–6.5 million** relations — ~2 orders of magnitude more than
+the exact setting. († = 4/5 rather than 5/5 keys.) "Survives 45% noise" is real but costly.
 
-- *"recovers ML-DSA subkeys from as few as 5,000 to 35,000 informative relations
-  across all parameter sets and leakage bit indices, constituting a reduction by a
-  factor of 37–68× over the previous state of the art."*
-- *"key recovery remains feasible even at noise rates as high as 45%."*
+## Prior work (the single-leaked-bit premise)
 
-## What is NOT transcribed (needs the committed PDF)
-
-- The **exact per-parameter-set relation counts** inside the 5,000–35,000 band, and
-  per-leakage-bit-index numbers. The demo deliberately shows only the verified
-  **band**, never invented per-row values.
-- The exact **bibliographic keys** for Liu et al. / Damm et al. (attribution is
-  transcribed from the intro; the numeric reference keys live in the PDF).
+- **Liu et al. [4]:** Y. Liu, Y. Zhou, S. Sun, T. Wang, R. Zhang, J. Ming, *"On the
+  Security of Lattice-Based Fiat-Shamir Signatures in the Presence of Randomness
+  Leakage"*, IEEE TIFS, vol. 16, pp. 1868–1879, 2021. — one leaked bit of `y` per
+  signature suffices in principle.
+- **Damm et al. [5]:** S. Damm, N. Kraus, A. May, J. Nowakowski, J. Thietke, *"One Bit to
+  Rule Them All — Imperfect Randomness Harms Lattice Signatures"*, PKC 2025, pp. 284–316.
+  — practical regression attack; data-hungry. Noisy model: ePrint **2025/820** [6].
 
 ## The toy engine is NOT in this file
 
-Everything in `src/model.ts` is an **illustrative toy** at dimension 8. Its
-relation counts (≈1,500 to converge noiseless) and its noise ceiling are the
-**toy's own** numbers, computed live in the browser — they are **never** the
-paper's 5,000–35,000 or ~45%, and the UI badges them distinctly
-(`toy · illustrative` vs `paper-measured`).
+`src/model.ts` is an **illustrative toy** at dimension 8 with a one-sided threshold leak
+(`⟨a,s⟩ ≥ τ`) standing in for the paper's two-sided interval relation
+`|⟨c,x⟩ − z̃| ≤ β`. Its relation counts (≈1,500 to converge noiseless) and noise ceiling
+(~20–30%) are the **toy's own**, never the paper's, and the UI badges the two distinctly.
 
 ## Verify it yourself (toy side)
 
 ```js
 import { makeToyInstance, makeRelations, hillClimb, score } from './src/model';
-
-const inst = makeToyInstance(1);                 // a toy subkey the demo generated
-const rels = makeRelations(inst, 4000, 0, 113);  // 4,000 noiseless relations
+const inst = makeToyInstance(1);
+const rels = makeRelations(inst, 4000, 0, 113);
 score(inst.secret, rels);                        // 0 — zero exactly at the true key
 const res = hillClimb(rels, { n: 8, q: 257, bound: 3, seed: 8 });
-res.converged;                                   // true — descended to score 0
-res.best;                                        // === inst.secret (recovered)
+res.converged && res.best;                        // true; === inst.secret (recovered)
 ```

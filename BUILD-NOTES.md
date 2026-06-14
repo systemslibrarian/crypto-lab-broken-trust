@@ -4,50 +4,43 @@
 Uncovering ML-DSA Subkeys with Scarce Leakage and Local Optimization"*, IACR
 ePrint **2026/472** (published 2026-03-06). <https://eprint.iacr.org/2026/472>
 
-`npm test` → **27 tests green**. `npm run build` → clean; `dist/` emits with base
+`npm test` → **31 tests green**. `npm run build` → clean; `dist/` emits with base
 `/crypto-lab-broken-trust/` (asset URLs verified: `/crypto-lab-broken-trust/assets/…`).
 
 ---
 
-## ⚠️ Action required from Paul — commit the PDF, re-verify the table
+## Provenance — figures verified against the FULL paper text
 
-The IACR PDF is served behind a **Cloudflare interstitial**. Every automated fetch
-during the build hit it:
-
-- `WebFetch https://eprint.iacr.org/2026/472(.pdf)` → **HTTP 403**.
-- `curl` with a desktop browser User-Agent → returned the **"Just a moment…"
-  challenge HTML**, not a PDF (verified with `file`; deleted, not committed —
-  committing a fake PDF would be dishonest).
-
-So **`2026-472.pdf` is NOT in the repo.** Please download it in a browser and
-commit it as `2026-472.pdf`, then re-verify the per-parameter-set table against
-`PAPER-NOTES.md`. The paper figures below were transcribed from the **abstract**
-(two independent web retrievals agreeing, and matching the build brief). **If the
-PDF disagrees with any figure, the PDF wins** — update `src/paperData.ts` (the
-tests will then flag the change loudly).
-
----
+The full paper text (Tables 1–4, abstract, intro) was transcribed into
+`src/paperData.ts`. The IACR PDF is Cloudflare-gated (`WebFetch` → HTTP 403;
+`curl` → the "Just a moment…" challenge HTML), so it is **not redistributed in this
+repo** — and it does not need to be: the numbers below are the exact table values,
+pinned by tests. No abstract-only guesswork remains; no per-set values are invented.
 
 ## Transcribed paper numbers (with citations) — `src/paperData.ts`
 
-| Quantity | Value | Citation | Provenance |
-|---|---|---|---|
-| Informative relations to recover a subkey | **5,000 – 35,000** | Abstract ("across all parameter sets and leakage bit indices") | abstract |
-| Reduction over previous state of the art | **37× – 68×** | Abstract | abstract |
-| Noise tolerance (leaked bit flipped i.i.d. w.p. p) | up to **~45%** | Abstract | abstract |
-| Premise (prior work) | one leaked bit of masking randomness per signature | §Intro — **Liu et al.**, **Damm et al.** | abstract / intro |
-| Parameter sets named | ML-DSA-44 / -65 / -87 | FIPS 204 (context only; band is the paper's aggregate) | standard |
+| Quantity | Value | Citation |
+|---|---|---|
+| Relations to recover (exact setting) | **5,000 – 35,000** (min ML-DSA-87 j=6; max ML-DSA-65 j=9) | **Table 2** |
+| Per-set × per-index relation counts | full 3×4 grid (j ∈ {6,7,8,9}) | **Table 2** |
+| Reduction vs Damm et al. [5] | **37.0× / 42.8× / 68.5×** (44 / 87 / 65) → span 37–68× | **Table 3** |
+| Noise tolerance (bit flipped i.i.d. w.p. p) | up to **45%** | Abstract, **Table 4** |
+| Noisy-setting relation cost | **2,000,000 – 6,500,000** (p = 0.45) | **Table 4** |
+| Scheme params (n, q, k, ℓ, η, τ, γ₁, β=τ·η) | per set | **Table 1** |
+| Premise (prior work) | one leaked bit of masking randomness per signature | §1, §2.2 — **Liu et al. [4]** (IEEE TIFS 2021), **Damm et al. [5]** (PKC 2025; noisy [6] = ePrint 2025/820) |
 
-These are pinned by **transcription-guard tests** that fail loudly if mistyped:
-relation counts must equal 5,000 / 35,000; reduction must equal 37 / 68; noise
-must be ≤ 0.45 (and ≈ 0.45). Authors and prior-work attribution are asserted too.
+Pinned by **transcription-guard tests** that fail loudly if any cell is mistyped: the
+5k–35k band is re-derived as the min/max of the Table-2 grid; the 37.0/42.8/68.5×
+factors are checked against `Damm/ours` (truncated to one decimal) and their span;
+β = τ·η is checked per set; noisy data is asserted to exist only for ML-DSA-44 & -87.
 
-### Not transcribed (needs the PDF)
+### Caveats transcribed faithfully (not gaps in this repo)
 
-- Exact **per-parameter-set** relation counts within the 5k–35k band, and
-  per-leakage-bit-index numbers. The demo shows only the verified **band** — no
-  invented per-row values.
-- Exact **bibliographic keys** for Liu et al. / Damm et al.
+- **Noisy results are preliminary** (paper §6.2): ML-DSA-44 and -87 only, j ∈ {6,7,8};
+  ML-DSA-65 and other noise levels are the authors' future work. Surfaced in the replay
+  panel and Known Gaps.
+- **The toy leak is a one-sided threshold** stand-in for the paper's two-sided interval
+  `|⟨c,x⟩ − z̃| ≤ β`. Stated in the mechanism note and Known Gaps.
 
 ---
 
