@@ -26,6 +26,7 @@ import {
   hillClimb,
   recovers,
   relationsToConverge,
+  runTrials,
   vectorsEqual,
   TOY_N,
   TOY_ETA,
@@ -238,6 +239,100 @@ describe('hillClimb (multi-tier local optimization)', () => {
     const res = hillClimb(rels, { n: inst.n, q: inst.q, bound: TOY_BOUND, seed: 1, maxIters: 5000 });
     expect(res.iterations).toBeLessThanOrEqual(5000);
     expect(res.bestScore).toBeGreaterThanOrEqual(1); // can't satisfy both
+  });
+});
+
+// ===========================================================================
+// hillClimb explicit start (click-to-set-start on the landscape)
+// ===========================================================================
+describe('hillClimb with an explicit start candidate', () => {
+  it('starting AT the true key converges immediately (score 0, no moves)', () => {
+    const inst = makeToyInstance(3);
+    const rels = makeRelations(inst, 4000, 0, 303);
+    const res = hillClimb(rels, {
+      n: inst.n, q: inst.q, bound: TOY_BOUND, seed: 1, start: inst.secret.slice(),
+    });
+    expect(res.bestScore).toBe(0);
+    expect(res.converged).toBe(true);
+    expect(res.trajectory).toHaveLength(1); // already optimal: no improving moves
+    expect(vectorsEqual(res.best, inst.secret)).toBe(true);
+  });
+
+  it('starting far from the key still recovers it (enough relations)', () => {
+    const inst = makeToyInstance(5);
+    const rels = makeRelations(inst, 4000, 0, 505);
+    const start = new Array(inst.n).fill(-TOY_BOUND); // a deliberately bad corner
+    const res = hillClimb(rels, { n: inst.n, q: inst.q, bound: TOY_BOUND, seed: 1, start });
+    expect(recovers(res, inst)).toBe(true);
+    expect(res.trajectory[0].candidate).toEqual(start); // the run begins where we asked
+  });
+
+  it('is deterministic: same start ⇒ identical trajectory', () => {
+    const inst = makeToyInstance(7);
+    const rels = makeRelations(inst, 3000, 0, 707);
+    const start = [0, 1, -1, 2, 0, -2, 1, 0];
+    const a = hillClimb(rels, { n: inst.n, q: inst.q, bound: TOY_BOUND, seed: 1, start });
+    const b = hillClimb(rels, { n: inst.n, q: inst.q, bound: TOY_BOUND, seed: 99, start });
+    expect(a.trajectory).toEqual(b.trajectory); // seed is irrelevant when start is given
+  });
+
+  it('rounds and clamps start entries to the search box', () => {
+    const inst = makeToyInstance(1);
+    const rels = makeRelations(inst, 500, 0, 11);
+    const start = [99, -99, 1.4, -1.6, 0, 0, 0, 0]; // out of range / non-integer
+    const res = hillClimb(rels, { n: inst.n, q: inst.q, bound: TOY_BOUND, seed: 1, start });
+    const begin = res.trajectory[0].candidate;
+    expect(begin[0]).toBe(TOY_BOUND); // 99 -> +bound
+    expect(begin[1]).toBe(-TOY_BOUND); // -99 -> -bound
+    expect(begin[2]).toBe(1); // 1.4 -> 1
+    expect(begin[3]).toBe(-2); // -1.6 -> -2
+  });
+
+  it('throws on a start of the wrong length', () => {
+    const inst = makeToyInstance(1);
+    const rels = makeRelations(inst, 500, 0, 11);
+    expect(() =>
+      hillClimb(rels, { n: inst.n, q: inst.q, bound: TOY_BOUND, seed: 1, start: [0, 0, 0] }),
+    ).toThrow();
+  });
+});
+
+// ===========================================================================
+// runTrials — repeated-trial statistics (the toy's own 10/10-style metric)
+// ===========================================================================
+describe('runTrials', () => {
+  it('is deterministic for a fixed seed', () => {
+    const a = runTrials(2000, 0, { trials: 8, seed: 5 });
+    const b = runTrials(2000, 0, { trials: 8, seed: 5 });
+    expect(a).toEqual(b);
+  });
+
+  it('reports a coherent success rate and steps distribution', () => {
+    const r = runTrials(2000, 0.1, { trials: 10, seed: 5 });
+    expect(r.trials).toBe(10);
+    expect(r.successRate).toBeGreaterThanOrEqual(0);
+    expect(r.successRate).toBeLessThanOrEqual(1);
+    expect(r.successRate).toBeCloseTo(r.successes / r.trials, 10);
+    expect(r.steps).toHaveLength(r.successes); // one step-count per recovered trial
+    expect(r.iterations).toHaveLength(r.trials); // one iteration-count per trial
+    for (const s of r.steps) expect(s).toBeGreaterThanOrEqual(0);
+  });
+
+  it('recovers (almost) always with many noiseless relations', () => {
+    const r = runTrials(4000, 0, { trials: 15, seed: 1 });
+    expect(r.successRate).toBeGreaterThanOrEqual(0.8); // toy's own reliability, not the paper's
+  });
+
+  it('degrades at high noise (lower success than the noiseless case)', () => {
+    const clean = runTrials(2000, 0, { trials: 12, seed: 2 });
+    const noisy = runTrials(2000, 0.45, { trials: 12, seed: 2 });
+    expect(noisy.successRate).toBeLessThan(clean.successRate);
+  });
+
+  it('guards its inputs', () => {
+    expect(() => runTrials(-1, 0, { trials: 5, seed: 1 })).toThrow();
+    expect(() => runTrials(100, 0, { trials: 0, seed: 1 })).toThrow();
+    expect(() => runTrials(100, 1.5, { trials: 5, seed: 1 })).toThrow();
   });
 });
 

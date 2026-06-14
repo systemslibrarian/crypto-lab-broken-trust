@@ -255,10 +255,17 @@ export interface HillClimbConfig {
   bound: number;
   /** Number of refinement tiers (coarse → fine). Default DEFAULT_TIERS. */
   tiers?: number;
-  /** Seed for the initial guess (deterministic). */
+  /** Seed for the initial guess (deterministic). Used only when `start` is absent. */
   seed: number;
   /** Hard cap on candidate evaluations, so it always terminates. */
   maxIters?: number;
+  /**
+   * Optional explicit initial candidate (length n). When provided, the climber
+   * starts here instead of the seeded random guess — used by the UI's
+   * "click to set the start point" on the score landscape. Entries are rounded
+   * and clamped to [-bound, bound]. Determinism is preserved (same start ⇒ same run).
+   */
+  start?: number[];
 }
 
 /** One recorded point on the descent (only improving moves + tier starts). */
@@ -329,8 +336,16 @@ export function hillClimb(relations: Relation[], cfg: HillClimbConfig): HillClim
   if (bound < 1) throw new Error(`bound must be >= 1 (got ${bound})`);
   if (tiers < 1) throw new Error(`tiers must be >= 1 (got ${tiers})`);
 
-  const rng = makeRng(seed);
-  const candidate = Array.from({ length: n }, () => rng.int(-bound, bound));
+  let candidate: number[];
+  if (cfg.start !== undefined) {
+    if (cfg.start.length !== n) {
+      throw new Error(`start must have length n=${n} (got ${cfg.start.length})`);
+    }
+    candidate = cfg.start.map((v) => clamp(Math.round(v), bound));
+  } else {
+    const rng = makeRng(seed);
+    candidate = Array.from({ length: n }, () => rng.int(-bound, bound));
+  }
   let bestScore = score(candidate, relations);
   let iterations = 0;
   let step = 0;
@@ -434,4 +449,85 @@ export function relationsToConverge(
     if (allRecovered) return { relations: count, grid, trials };
   }
   return { relations: null, grid, trials };
+}
+
+// ---------------------------------------------------------------------------
+// F. Repeated-trial statistics — bridges the single deterministic toy run to the
+//    paper's statistical "10/10 keys recovered" methodology. Each trial draws a
+//    fresh toy instance (a different secret) and a fresh relation set + start, so
+//    the success rate reflects the toy's behaviour across keys, not one lucky run.
+//    Pure and deterministic for a fixed seed.
+// ---------------------------------------------------------------------------
+
+export interface TrialsResult {
+  /** Number of independent trials run. */
+  trials: number;
+  /** How many recovered the exact toy subkey. */
+  successes: number;
+  /** successes / trials, in [0, 1]. */
+  successRate: number;
+  /** Relation count and noise the trials were run at (echoed back). */
+  relations: number;
+  noiseP: number;
+  /** Accepted-move counts (trajectory length − 1) for the RECOVERED trials only,
+   *  i.e. the "steps to the key" distribution. Length === successes. */
+  steps: number[];
+  /** Total iterations (candidate evaluations) per trial — all trials, in order. */
+  iterations: number[];
+}
+
+/**
+ * Run `trials` independent toy recoveries at a fixed relation count and noise level,
+ * each with its own seeded instance / relations / hill-climb start, and report the
+ * success rate and the steps-to-recovery distribution. Deterministic for a fixed
+ * `seed`. This is the toy's OWN statistic (badged illustrative in the UI) — it is
+ * the methodological mirror of the paper's "all of ten keys recovered" criterion,
+ * NOT a paper number.
+ */
+export function runTrials(
+  relations: number,
+  noiseP: number,
+  opts: { trials?: number; seed: number; tiers?: number },
+): TrialsResult {
+  const trials = opts.trials ?? 20;
+  const tiers = opts.tiers ?? DEFAULT_TIERS;
+  requireInt('relations', relations);
+  requireInt('trials', trials);
+  requireInt('seed', opts.seed);
+  if (relations < 0) throw new Error(`relations must be >= 0 (got ${relations})`);
+  if (trials < 1) throw new Error(`trials must be >= 1 (got ${trials})`);
+  if (!(noiseP >= 0 && noiseP <= 1)) throw new Error(`noiseP must be in [0, 1] (got ${noiseP})`);
+
+  const rng = makeRng(opts.seed);
+  let successes = 0;
+  const steps: number[] = [];
+  const iterations: number[] = [];
+  for (let t = 0; t < trials; t++) {
+    const instanceSeed = rng.int(1, 2_000_000_000);
+    const relSeed = rng.int(1, 2_000_000_000);
+    const climbSeed = rng.int(1, 2_000_000_000);
+    const instance = makeToyInstance(instanceSeed);
+    const rels = makeRelations(instance, relations, noiseP, relSeed);
+    const res = hillClimb(rels, {
+      n: instance.n,
+      q: instance.q,
+      bound: TOY_BOUND,
+      tiers,
+      seed: climbSeed,
+    });
+    iterations.push(res.iterations);
+    if (recovers(res, instance)) {
+      successes++;
+      steps.push(res.trajectory.length - 1);
+    }
+  }
+  return {
+    trials,
+    successes,
+    successRate: successes / trials,
+    relations,
+    noiseP,
+    steps,
+    iterations,
+  };
 }
