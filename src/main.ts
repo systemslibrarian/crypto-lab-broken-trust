@@ -93,6 +93,10 @@ let cursor = 0; // index into result.trajectory
 let microIdx = 0; // selected relation in the microscope
 let axisI = 0; // landscape x coordinate
 let axisJ = 1; // landscape y coordinate
+// When the user clicks the landscape to set a starting point, we pin an explicit
+// start vector here; null means "use the seeded random guess". Cleared on any
+// slider change so the deterministic seeded run returns.
+let userStart: number[] | null = null;
 
 function runEngine(): HillClimbResult {
   relations = makeRelations(instance, relCount, noiseP, relSeedFor(seed));
@@ -102,6 +106,7 @@ function runEngine(): HillClimbResult {
     bound: TOY_BOUND,
     tiers: DEFAULT_TIERS,
     seed: climbSeedFor(seed),
+    ...(userStart ? { start: userStart } : {}),
   });
 }
 
@@ -587,6 +592,7 @@ function buildTeachingPresets(): void {
     b.title = p.note;
     b.addEventListener('click', () => {
       stopPlaying();
+      userStart = null;
       seed = p.seed;
       relCount = p.rels;
       noiseP = p.noise;
@@ -715,11 +721,35 @@ function buildAxisSelectors(): void {
   });
 }
 
+// Viridis-style ramp (colorblind-safe): t=0 (low score / the valley) = dark purple,
+// t=1 (high score) = yellow. Replaces the old red→green scale.
+const VIRIDIS: Array<[number, number, number]> = [
+  [68, 1, 84], // #440154
+  [59, 82, 139], // #3b528b
+  [33, 145, 140], // #21918c
+  [94, 201, 98], // #5ec962
+  [253, 231, 37], // #fde725
+];
 function heatColor(t: number): string {
-  // t in [0,1]: 0 = low score (good, green/teal) -> 1 = high score (bad, red).
-  const hue = (1 - t) * 150; // 150=green .. 0=red
-  return `hsl(${hue}, 70%, ${22 + t * 18}%)`;
+  const x = Math.max(0, Math.min(1, t)) * (VIRIDIS.length - 1);
+  const i = Math.min(VIRIDIS.length - 2, Math.floor(x));
+  const f = x - i;
+  const a = VIRIDIS[i];
+  const b = VIRIDIS[i + 1];
+  const r = Math.round(a[0] + (b[0] - a[0]) * f);
+  const g = Math.round(a[1] + (b[1] - a[1]) * f);
+  const bl = Math.round(a[2] + (b[2] - a[2]) * f);
+  return `rgb(${r}, ${g}, ${bl})`;
 }
+
+/** Color for a trajectory segment ending in a given tier (tier 0 coarse → fine). */
+function tierColor(tier: number): string {
+  const vars = ['--accent-2', '--accent', '--accent-toy'];
+  return cssVar(vars[Math.min(tier, vars.length - 1)]);
+}
+
+/** Plot geometry of the last landscape draw, for click/hover hit-testing. */
+let landscapeGeo = { padL: 48, padT: 20, cw: 0, ch: 0, n: 0, plotW: 0, plotH: 0 };
 
 function drawLandscape(): void {
   const canvas = el<HTMLCanvasElement>('landscape-chart');
@@ -728,7 +758,7 @@ function drawLandscape(): void {
   const W = canvas.width;
   const H = canvas.height;
   const padL = 48;
-  const padR = 20;
+  const padR = 86; // room for the vertical legend
   const padT = 20;
   const padB = 44;
   const plotW = W - padL - padR;
@@ -738,6 +768,7 @@ function drawLandscape(): void {
   const n = coordValues.length;
   const cw = plotW / n;
   const ch = plotH / n;
+  landscapeGeo = { padL, padT, cw, ch, n, plotW, plotH };
   // cell (i across, j up). j=0 at bottom.
   const cellX = (i: number) => padL + i * cw;
   const cellY = (j: number) => padT + (n - 1 - j) * ch;
@@ -771,7 +802,26 @@ function drawLandscape(): void {
   ctx.restore();
 
   const idxOf = (v: number) => v + TOY_BOUND;
-  const markCenter = (vi: number, vj: number) => [cellX(idxOf(vi)) + cw / 2, cellY(idxOf(vj)) + ch / 2] as const;
+  const markCenter = (vi: number, vj: number) =>
+    [cellX(idxOf(vi)) + cw / 2, cellY(idxOf(vj)) + ch / 2] as const;
+
+  // --- the rolling-downhill trajectory, projected onto these two coords ---
+  const traj = result.trajectory;
+  if (cursor > 0) {
+    for (let k = 1; k <= cursor; k++) {
+      const [x0, y0] = markCenter(traj[k - 1].candidate[axisI], traj[k - 1].candidate[axisJ]);
+      const [x1, y1] = markCenter(traj[k].candidate[axisI], traj[k].candidate[axisJ]);
+      const age = k / cursor; // 0 oldest .. 1 newest
+      ctx.strokeStyle = tierColor(traj[k].tier);
+      ctx.globalAlpha = 0.25 + 0.6 * age;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
 
   // true key (the bowl's bottom)
   const [tx, ty] = markCenter(instance.secret[axisI], instance.secret[axisJ]);
@@ -782,28 +832,110 @@ function drawLandscape(): void {
   ctx.stroke();
 
   // start guess (projected)
-  const start = result.trajectory[0].candidate;
+  const start = traj[0].candidate;
   const [sx, sy] = markCenter(start[axisI], start[axisJ]);
   ctx.fillStyle = cssVar('--text-muted');
   ctx.beginPath();
   ctx.arc(sx, sy, 4, 0, Math.PI * 2);
   ctx.fill();
 
-  // current candidate (projected)
+  // current candidate = the rolling particle
   const cand = candidateAt();
   const [cx, cy] = markCenter(cand[axisI], cand[axisJ]);
-  ctx.fillStyle = cssVar('--accent');
+  const atKey = cand[axisI] === instance.secret[axisI] && cand[axisJ] === instance.secret[axisJ];
+  ctx.fillStyle = atKey ? cssVar('--ok') : cssVar('--accent');
   ctx.beginPath();
-  ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 6, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = text;
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
+  // --- legend (vertical viridis gradient) ---
+  const lgX = W - padR + 22;
+  const lgW = 14;
+  const lgTop = padT;
+  const lgH = plotH;
+  const steps = 40;
+  for (let s = 0; s < steps; s++) {
+    const t = 1 - s / (steps - 1); // top = max (t=1), bottom = min (t=0)
+    ctx.fillStyle = heatColor(t);
+    ctx.fillRect(lgX, lgTop + (s / steps) * lgH, lgW, lgH / steps + 1);
+  }
+  ctx.strokeStyle = cssVar('--border');
+  ctx.lineWidth = 1;
+  ctx.strokeRect(lgX, lgTop, lgW, lgH);
+  ctx.fillStyle = muted;
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${fmt(landscapeMax)}`, lgX + lgW + 4, lgTop + 8);
+  ctx.fillText('score', lgX + lgW + 4, lgTop + lgH / 2);
+  ctx.fillText(`${fmt(landscapeMin)}`, lgX + lgW + 4, lgTop + lgH);
+  // mark the true-key minimum on the legend
+  ctx.fillStyle = cssVar('--accent-paper');
+  ctx.fillText('◀ key', lgX + lgW + 4, lgTop + lgH - 12);
+
   el('landscape-caption').textContent =
-    `Score over coords ${axisI} and ${axisJ} (others fixed at the true key). ` +
-    `Green = low score (good), red = high. ◯ true key = the minimum; ● current candidate, • start guess. ` +
-    `Range ${fmt(landscapeMin)}–${fmt(landscapeMax)} violations.`;
+    `Score over coords ${axisI} and ${axisJ} (others fixed at the true key) — a 2-D slice of the ` +
+    `8-D landscape. Dark = low score (the valley), yellow = high. ◯ true key (minimum), ` +
+    `● rolling candidate, • start. The line is the descent path projected onto these two axes. ` +
+    `Click a cell to start the climb there; range ${fmt(landscapeMin)}–${fmt(landscapeMax)} violations.`;
+}
+
+/** Map a pointer event to a landscape cell {i, j}, or null if outside the grid. */
+function landscapeCellFromEvent(e: MouseEvent): { i: number; j: number } | null {
+  const canvas = el<HTMLCanvasElement>('landscape-chart');
+  const rect = canvas.getBoundingClientRect();
+  const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const py = (e.clientY - rect.top) * (canvas.height / rect.height);
+  const { padL, padT, cw, ch, n, plotW, plotH } = landscapeGeo;
+  if (cw === 0 || px < padL || px > padL + plotW || py < padT || py > padT + plotH) return null;
+  const i = Math.max(0, Math.min(n - 1, Math.floor((px - padL) / cw)));
+  const j = Math.max(0, Math.min(n - 1, n - 1 - Math.floor((py - padT) / ch)));
+  return { i, j };
+}
+
+function setupLandscapeInteraction(): void {
+  const canvas = el<HTMLCanvasElement>('landscape-chart');
+  canvas.style.cursor = 'crosshair';
+  const tip = el('landscape-tip');
+
+  // Click a cell → start the climb there (overrides the seeded start) and play.
+  canvas.addEventListener('click', (e) => {
+    const cell = landscapeCellFromEvent(e);
+    if (!cell) return;
+    stopPlaying();
+    const vi = coordValues[cell.i];
+    const vj = coordValues[cell.j];
+    const base = (userStart ?? result.trajectory[0].candidate).slice();
+    base[axisI] = vi;
+    base[axisJ] = vj;
+    userStart = base;
+    recompute('start');
+    onEngineChanged();
+    renderAll();
+    play();
+    writeUrlState();
+  });
+
+  // Hover → read the exact score at that cell.
+  canvas.addEventListener('mousemove', (e) => {
+    const cell = landscapeCellFromEvent(e);
+    if (!cell || landscapeGrid.length === 0) {
+      tip.hidden = true;
+      return;
+    }
+    const s = landscapeGrid[cell.j][cell.i];
+    tip.hidden = false;
+    tip.textContent = `(${coordValues[cell.i]}, ${coordValues[cell.j]}) → ${fmt(s)} violations`;
+    const wrap = canvas.parentElement as HTMLElement;
+    const wrect = wrap.getBoundingClientRect();
+    tip.style.left = `${e.clientX - wrect.left + 12}px`;
+    tip.style.top = `${e.clientY - wrect.top + 12}px`;
+  });
+  canvas.addEventListener('mouseleave', () => {
+    tip.hidden = true;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1078,6 +1210,7 @@ function init(): void {
   buildTeachingPresets();
   setupMicroscope();
   buildAxisSelectors();
+  setupLandscapeInteraction();
   buildReplay();
   setupAssessment();
 
@@ -1090,6 +1223,7 @@ function init(): void {
 
   el<HTMLInputElement>('rels-slider').addEventListener('input', (e) => {
     stopPlaying();
+    userStart = null;
     relCount = Number((e.target as HTMLInputElement).value);
     recompute('end');
     onEngineChanged();
@@ -1104,6 +1238,7 @@ function init(): void {
 
   el<HTMLInputElement>('noise-slider').addEventListener('input', (e) => {
     stopPlaying();
+    userStart = null;
     noiseP = Number((e.target as HTMLInputElement).value) / 100;
     recompute('end');
     onEngineChanged();
@@ -1112,6 +1247,7 @@ function init(): void {
 
   el<HTMLInputElement>('seed-slider').addEventListener('input', (e) => {
     stopPlaying();
+    userStart = null;
     seed = Number((e.target as HTMLInputElement).value);
     recompute('end');
     onEngineChanged();

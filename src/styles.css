@@ -239,8 +239,25 @@ output { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--acce
 .play-btn[disabled] { opacity: 0.55; cursor: default; }
 .play-status { margin-left: 0.4rem; font-size: 0.88rem; }
 
-.chart-wrap { margin: 0; }
+.chart-wrap { margin: 0; position: relative; }
 canvas { width: 100%; height: auto; background: var(--bg-elev-2); border-radius: 8px; }
+
+/* Hover tooltip for canvas charts (landscape score readout). */
+.canvas-tip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.canvas-tip[hidden] { display: none; }
 figcaption { margin-top: 0.5rem; font-size: 0.85rem; }
 
 /* ---- Candidate vs true visualization ---- */

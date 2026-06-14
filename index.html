@@ -213,7 +213,8 @@
         </div>
         <figure class="chart-wrap">
           <canvas id="landscape-chart" width="900" height="420" role="img"
-            aria-label="A heatmap of the violation score over two secret coordinates: dark/cool cells are low score, bright/warm cells are high score. The true key is marked at the minimum, with the optimizer's start and current candidate projected on."></canvas>
+            aria-label="A heatmap of the violation score over two secret coordinates: dark cells are low score (the valley), yellow cells are high score. The true key is marked at the minimum, with the optimizer's start, projected descent path, and current candidate drawn on. Click a cell to start the climb there."></canvas>
+          <div class="canvas-tip" id="landscape-tip" hidden></div>
           <figcaption class="muted" id="landscape-caption">—</figcaption>
         </figure>
       </section>
