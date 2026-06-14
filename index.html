@@ -68,6 +68,10 @@
           Below, watch a <strong>toy</strong> version actually descend.
           <span class="badge badge-toy">toy · illustrative</span>
         </p>
+        <p class="northstar">
+          One leaked masking bit per signature turns ML-DSA's hidden subkey into the
+          <strong>unique minimum of a score the attacker can evaluate without the key</strong>.
+        </p>
         <ul class="tldr-points">
           <li><strong>The mechanism:</strong> a score you can evaluate <em>without the key</em> is zero exactly at the key — so local search finds it.</li>
           <li><strong>What's live below:</strong> a tiny self-contained engine recovering a key <em>it generated itself</em> — to make the dynamics visible.</li>
@@ -126,6 +130,10 @@
           toy's ceiling and the descent visibly stalls — the honest failure mode.
         </p>
 
+        <div class="presets" id="teaching-presets" role="group" aria-label="Named teaching states (deep-linkable)">
+          <!-- preset buttons injected by main.ts -->
+        </div>
+
         <div class="controls">
           <label class="slider-row">
             <span>Relations (leaks collected): <output id="rels-out">4000</output></span>
@@ -172,6 +180,44 @@
         </div>
       </section>
 
+      <!-- 3b. Relation microscope — one relation as a concrete object -->
+      <section class="card" id="microscope">
+        <h2>Inside one relation <span class="badge badge-toy">toy · illustrative</span></h2>
+        <p class="muted">
+          An “informative relation” is just <strong>one yes/no constraint</strong>. Here is a single one,
+          evaluated against the candidate at the current step — thousands like it carve the key out.
+        </p>
+        <div class="micro-controls">
+          <button type="button" class="step-btn" id="micro-next">Another relation →</button>
+          <span class="muted" id="micro-which"></span>
+        </div>
+        <div class="micro-grid" id="micro-grid"><!-- injected --></div>
+        <p class="micro-verdict" id="micro-verdict" aria-live="polite"></p>
+      </section>
+
+      <!-- 3c. Score landscape — proves the key is at the bottom of a hill -->
+      <section class="card" id="landscape">
+        <h2>The score landscape <span class="badge badge-toy">toy · illustrative</span></h2>
+        <p class="muted">
+          The descent chart shows the optimizer's <em>path</em>; this shows <em>why the path exists</em>.
+          Sweep any two coordinates (the other six fixed at their true values) and color each point by its
+          violation score. The true key sits at the <strong>bottom of the bowl</strong>.
+        </p>
+        <div class="axis-controls">
+          <label>x-axis coord
+            <select id="axis-i"></select>
+          </label>
+          <label>y-axis coord
+            <select id="axis-j"></select>
+          </label>
+        </div>
+        <figure class="chart-wrap">
+          <canvas id="landscape-chart" width="900" height="420" role="img"
+            aria-label="A heatmap of the violation score over two secret coordinates: dark/cool cells are low score, bright/warm cells are high score. The true key is marked at the minimum, with the optimizer's start and current candidate projected on."></canvas>
+          <figcaption class="muted" id="landscape-caption">—</figcaption>
+        </figure>
+      </section>
+
       <!-- 4. Mechanism explainer -->
       <section class="card" id="mechanism">
         <h2>How one leaked bit breaks the silence</h2>
@@ -213,6 +259,28 @@
         </p>
       </section>
 
+      <!-- 4b. No leakage vs leakage — why the hill exists at all -->
+      <section class="card" id="contrast">
+        <h2>No leakage vs. leakage <span class="badge badge-toy">toy · illustrative</span></h2>
+        <p class="muted">
+          The whole attack hinges on one thing. With <strong>zero</strong> leaked bits, the score is flat —
+          every candidate scores the same, so nothing points toward the key. Each leaked bit adds a constraint
+          that makes the true key stand out. Same toy key and the same candidates, scored both ways:
+        </p>
+        <div class="contrast-grid">
+          <div class="contrast-col">
+            <h3>0 leaked bits</h3>
+            <div class="contrast-bars" id="contrast-none"><!-- injected --></div>
+            <p class="muted" id="contrast-none-note">—</p>
+          </div>
+          <div class="contrast-col">
+            <h3>With leaks (current setting)</h3>
+            <div class="contrast-bars" id="contrast-leak"><!-- injected --></div>
+            <p class="muted" id="contrast-leak-note">—</p>
+          </div>
+        </div>
+      </section>
+
       <!-- 5. Paper overlay (toy vs real) -->
       <section class="card" id="overlay">
         <h2>Toy vs. paper — the honesty bridge</h2>
@@ -245,6 +313,15 @@
         <p class="muted ov-foot">
           Same algorithm shape, two scales. The bridge is the <em>behaviour</em> — not the magnitudes.
         </p>
+
+        <h3 class="replay-h">Paper-scale replay <span class="badge badge-paper">paper-measured</span></h3>
+        <p class="muted">
+          The paper's measured band, replayed per ML-DSA parameter set (no computation here). The
+          5,000–35,000 figure is the paper's aggregate <em>across</em> these sets and leakage-bit indices;
+          exact per-set counts await the committed PDF.
+        </p>
+        <div class="replay-tabs" id="replay-tabs" role="tablist" aria-label="ML-DSA parameter sets"></div>
+        <div class="replay-panel" id="replay-panel" role="tabpanel" aria-live="polite"></div>
       </section>
 
       <!-- 6. Noise explorer -->
@@ -267,6 +344,13 @@
           match the paper's number. <span class="badge badge-toy">toy</span> vs
           <span class="badge badge-paper">paper-measured</span>
         </p>
+      </section>
+
+      <!-- 6b. Assessment — did the three acts land? -->
+      <section class="card selfcheck" id="assessment">
+        <h2>Quick self-check</h2>
+        <p class="muted">Three questions. If these land, the demo did its job.</p>
+        <div class="quiz" id="quiz"><!-- injected --></div>
       </section>
 
       <!-- 7. Misconceptions FAQ -->

@@ -15,6 +15,8 @@ import {
   hillClimb,
   recovers,
   relationsToConverge,
+  score,
+  predictedBit,
   TOY_N,
   TOY_Q,
   TOY_ETA,
@@ -22,6 +24,7 @@ import {
   DEFAULT_TIERS,
   type ToyInstance,
   type HillClimbResult,
+  type Relation,
 } from './model';
 import {
   RELATIONS_TO_RECOVER,
@@ -82,12 +85,16 @@ let seed = 1;
 let relCount = 4000;
 let noiseP = 0; // 0..0.5
 let instance: ToyInstance = makeToyInstance(seed);
+let relations: Relation[] = [];
 let result: HillClimbResult = runEngine();
 let cursor = 0; // index into result.trajectory
+let microIdx = 0; // selected relation in the microscope
+let axisI = 0; // landscape x coordinate
+let axisJ = 1; // landscape y coordinate
 
 function runEngine(): HillClimbResult {
-  const rels = makeRelations(instance, relCount, noiseP, relSeedFor(seed));
-  return hillClimb(rels, {
+  relations = makeRelations(instance, relCount, noiseP, relSeedFor(seed));
+  return hillClimb(relations, {
     n: instance.n,
     q: instance.q,
     bound: TOY_BOUND,
@@ -95,6 +102,9 @@ function runEngine(): HillClimbResult {
     seed: climbSeedFor(seed),
   });
 }
+
+const dotProduct = (a: number[], v: number[]) => a.reduce((s, ai, i) => s + ai * v[i], 0);
+const candidateAt = () => result.trajectory[cursor].candidate;
 
 // ---------------------------------------------------------------------------
 // URL state (?seed=&rels=&noise=) — deep-linkable
@@ -549,6 +559,418 @@ function renderStickyHeadline(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Teaching presets — named, deep-linkable lesson states
+// ---------------------------------------------------------------------------
+interface Preset { label: string; seed: number; rels: number; noise: number; note: string; }
+const PRESETS: Preset[] = [
+  { label: 'Clean descent', seed: 1, rels: 4000, noise: 0, note: 'Enough noiseless leaks: the score rolls all the way to 0 and the key is recovered.' },
+  { label: 'Too few leaks', seed: 1, rels: 600, noise: 0, note: 'Scarce leaks: the descent stalls just short of 0 — not enough constraints to pin the key.' },
+  { label: 'Noisy but recoverable', seed: 1, rels: 6000, noise: 0.1, note: 'Score never reaches 0 under noise, yet many relations still recover the exact key.' },
+  { label: 'Past toy ceiling', seed: 1, rels: 4000, noise: 0.45, note: 'Beyond the toy\'s noise ceiling: the descent stalls high and the key is lost.' },
+];
+
+function presetMatches(p: Preset): boolean {
+  return p.seed === seed && p.rels === relCount && Math.abs(p.noise - noiseP) < 1e-9;
+}
+
+function buildTeachingPresets(): void {
+  const box = el('teaching-presets');
+  box.innerHTML = '';
+  for (const p of PRESETS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'preset-btn';
+    b.textContent = p.label;
+    b.title = p.note;
+    b.addEventListener('click', () => {
+      stopPlaying();
+      seed = p.seed;
+      relCount = p.rels;
+      noiseP = p.noise;
+      recompute('start');
+      onEngineChanged();
+      renderAll();
+      el('play-status').textContent = p.note;
+      play();
+      writeUrlState();
+    });
+    box.appendChild(b);
+  }
+}
+
+function markActivePreset(): void {
+  const buttons = Array.from(el('teaching-presets').children) as HTMLButtonElement[];
+  buttons.forEach((b, i) => b.classList.toggle('active', presetMatches(PRESETS[i])));
+}
+
+// ---------------------------------------------------------------------------
+// Relation microscope — one relation as a concrete object
+// ---------------------------------------------------------------------------
+function renderMicroscope(): void {
+  if (relations.length === 0) return;
+  if (microIdx >= relations.length) microIdx = 0;
+  const r = relations[microIdx];
+  const cand = candidateAt();
+  const candDot = dotProduct(r.a, cand);
+  const trueDot = dotProduct(r.a, instance.secret);
+  const predicted = predictedBit(cand, r.a, r.tau);
+  const violated = predicted !== r.bit;
+
+  el('micro-which').textContent = `relation #${microIdx + 1} of ${fmt(relations.length)}`;
+  el('micro-grid').innerHTML = [
+    ['public vector a', `<code>[${r.a.map((x) => signed(x)).join(', ')}]</code>`],
+    ['public threshold τ', `<code>${signed(r.tau)}</code>`],
+    ['⟨a, candidate⟩', `<code>${signed(candDot)}</code>`],
+    ['⟨a, true key⟩', `<code>${signed(trueDot)}</code> <span class="muted">(known only because the demo made the key)</span>`],
+    ['predicted bit (candidate ≥ τ?)', `<code>${predicted}</code>`],
+    ['observed leaked bit', `<code>${r.bit}</code>${noiseP > 0 ? ' <span class="muted">(may be noise-flipped)</span>' : ''}`],
+  ]
+    .map(([k, v]) => `<span class="mk">${k}</span><span class="mv">${v}</span>`)
+    .join('');
+
+  const verdict = el('micro-verdict');
+  if (violated) {
+    verdict.className = 'micro-verdict bad';
+    verdict.textContent = '✗ Violated — this candidate is on the wrong side of this relation. It adds 1 to the score.';
+  } else {
+    verdict.className = 'micro-verdict ok';
+    verdict.textContent = '✓ Satisfied — this candidate agrees with this leaked bit. It adds 0 to the score.';
+  }
+}
+
+function setupMicroscope(): void {
+  el<HTMLButtonElement>('micro-next').addEventListener('click', () => {
+    if (relations.length === 0) return;
+    const cand = candidateAt();
+    // Prefer the next relation this candidate VIOLATES (more instructive); else just advance.
+    let found = -1;
+    for (let k = 1; k <= relations.length; k++) {
+      const idx = (microIdx + k) % relations.length;
+      const r = relations[idx];
+      if (predictedBit(cand, r.a, r.tau) !== r.bit) { found = idx; break; }
+    }
+    microIdx = found >= 0 ? found : (microIdx + 1) % relations.length;
+    renderMicroscope();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Score landscape — heatmap over two coordinates around the true key
+// ---------------------------------------------------------------------------
+let landscapeGrid: number[][] = []; // [jIndex][iIndex] -> score
+let landscapeMin = 0;
+let landscapeMax = 1;
+const coordValues = Array.from({ length: 2 * TOY_BOUND + 1 }, (_, k) => k - TOY_BOUND); // [-B..B]
+
+function computeLandscape(): void {
+  const base = instance.secret.slice(); // fix other coords at the TRUE key
+  landscapeGrid = [];
+  landscapeMin = Infinity;
+  landscapeMax = -Infinity;
+  for (const vj of coordValues) {
+    const row: number[] = [];
+    for (const vi of coordValues) {
+      const c = base.slice();
+      c[axisI] = vi;
+      c[axisJ] = vj;
+      const s = score(c, relations);
+      row.push(s);
+      if (s < landscapeMin) landscapeMin = s;
+      if (s > landscapeMax) landscapeMax = s;
+    }
+    landscapeGrid.push(row);
+  }
+  if (landscapeMax === landscapeMin) landscapeMax = landscapeMin + 1;
+}
+
+function buildAxisSelectors(): void {
+  const mk = (sel: HTMLSelectElement, current: number) => {
+    sel.innerHTML = '';
+    for (let i = 0; i < TOY_N; i++) {
+      const o = document.createElement('option');
+      o.value = String(i);
+      o.textContent = `coord ${i}`;
+      if (i === current) o.selected = true;
+      sel.appendChild(o);
+    }
+  };
+  const si = el<HTMLSelectElement>('axis-i');
+  const sj = el<HTMLSelectElement>('axis-j');
+  mk(si, axisI);
+  mk(sj, axisJ);
+  si.addEventListener('change', () => {
+    axisI = Number(si.value);
+    if (axisI === axisJ) { axisJ = (axisJ + 1) % TOY_N; mk(sj, axisJ); }
+    computeLandscape();
+    drawLandscape();
+  });
+  sj.addEventListener('change', () => {
+    axisJ = Number(sj.value);
+    if (axisI === axisJ) { axisI = (axisI + 1) % TOY_N; mk(si, axisI); }
+    computeLandscape();
+    drawLandscape();
+  });
+}
+
+function heatColor(t: number): string {
+  // t in [0,1]: 0 = low score (good, green/teal) -> 1 = high score (bad, red).
+  const hue = (1 - t) * 150; // 150=green .. 0=red
+  return `hsl(${hue}, 70%, ${22 + t * 18}%)`;
+}
+
+function drawLandscape(): void {
+  const canvas = el<HTMLCanvasElement>('landscape-chart');
+  const ctx = canvas.getContext('2d');
+  if (!ctx || landscapeGrid.length === 0) return;
+  const W = canvas.width;
+  const H = canvas.height;
+  const padL = 48;
+  const padR = 20;
+  const padT = 20;
+  const padB = 44;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  ctx.clearRect(0, 0, W, H);
+
+  const n = coordValues.length;
+  const cw = plotW / n;
+  const ch = plotH / n;
+  // cell (i across, j up). j=0 at bottom.
+  const cellX = (i: number) => padL + i * cw;
+  const cellY = (j: number) => padT + (n - 1 - j) * ch;
+
+  const text = cssVar('--text');
+  const muted = cssVar('--text-muted');
+
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const s = landscapeGrid[j][i];
+      const t = (s - landscapeMin) / (landscapeMax - landscapeMin);
+      ctx.fillStyle = heatColor(t);
+      ctx.fillRect(cellX(i), cellY(j), cw - 1, ch - 1);
+    }
+  }
+
+  // axis ticks
+  ctx.fillStyle = muted;
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  for (let i = 0; i < n; i++) ctx.fillText(String(coordValues[i]), cellX(i) + cw / 2, padT + plotH + 16);
+  ctx.textAlign = 'right';
+  for (let j = 0; j < n; j++) ctx.fillText(String(coordValues[j]), padL - 6, cellY(j) + ch / 2 + 4);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = muted;
+  ctx.fillText(`coord ${axisI}`, padL + plotW / 2, H - 6);
+  ctx.save();
+  ctx.translate(12, padT + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(`coord ${axisJ}`, 0, 0);
+  ctx.restore();
+
+  const idxOf = (v: number) => v + TOY_BOUND;
+  const markCenter = (vi: number, vj: number) => [cellX(idxOf(vi)) + cw / 2, cellY(idxOf(vj)) + ch / 2] as const;
+
+  // true key (the bowl's bottom)
+  const [tx, ty] = markCenter(instance.secret[axisI], instance.secret[axisJ]);
+  ctx.strokeStyle = cssVar('--accent-paper');
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(tx, ty, Math.min(cw, ch) * 0.32, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // start guess (projected)
+  const start = result.trajectory[0].candidate;
+  const [sx, sy] = markCenter(start[axisI], start[axisJ]);
+  ctx.fillStyle = cssVar('--text-muted');
+  ctx.beginPath();
+  ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // current candidate (projected)
+  const cand = candidateAt();
+  const [cx, cy] = markCenter(cand[axisI], cand[axisJ]);
+  ctx.fillStyle = cssVar('--accent');
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = text;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  el('landscape-caption').textContent =
+    `Score over coords ${axisI} and ${axisJ} (others fixed at the true key). ` +
+    `Green = low score (good), red = high. ◯ true key = the minimum; ● current candidate, • start guess. ` +
+    `Range ${fmt(landscapeMin)}–${fmt(landscapeMax)} violations.`;
+}
+
+// ---------------------------------------------------------------------------
+// No-leak vs leak contrast
+// ---------------------------------------------------------------------------
+function renderContrast(): void {
+  // The true key plus 5 perturbations of increasing distance (nudge first k coords).
+  const truth = instance.secret;
+  const candidates: Array<{ name: string; vec: number[]; isTrue: boolean }> = [
+    { name: 'true key', vec: truth.slice(), isTrue: true },
+  ];
+  for (let k = 1; k <= 5; k++) {
+    const v = truth.slice();
+    for (let i = 0; i < k; i++) v[i] = Math.min(TOY_BOUND, v[i] + 1);
+    candidates.push({ name: `guess ${k}`, vec: v, isTrue: false });
+  }
+
+  const withLeak = candidates.map((c) => ({ ...c, s: score(c.vec, relations) }));
+  const maxLeak = Math.max(1, ...withLeak.map((c) => c.s));
+
+  const noneHtml = candidates
+    .map(
+      (c) =>
+        `<div class="cbar-row"><span class="cbar-name">${c.name}</span>` +
+        `<span class="cbar-track"><span class="cbar-fill zero" style="width:0%"></span></span>` +
+        `<span class="cbar-val">0</span></div>`,
+    )
+    .join('');
+  el('contrast-none').innerHTML = noneHtml;
+  el('contrast-none-note').textContent =
+    'Every candidate scores 0 — with no relations there is nothing to violate. The key is invisible.';
+
+  el('contrast-leak').innerHTML = withLeak
+    .map((c) => {
+      const w = Math.round((c.s / maxLeak) * 100);
+      const cls = c.isTrue ? 'true' : '';
+      return (
+        `<div class="cbar-row"><span class="cbar-name">${c.name}</span>` +
+        `<span class="cbar-track"><span class="cbar-fill ${cls}" style="width:${w}%"></span></span>` +
+        `<span class="cbar-val">${fmt(c.s)}</span></div>`
+      );
+    })
+    .join('');
+  const trueScore = withLeak[0].s;
+  el('contrast-leak-note').textContent =
+    noiseP > 0
+      ? `The true key scores lowest (${fmt(trueScore)} — nonzero because of ${Math.round(noiseP * 100)}% noise), and wrong guesses score higher. The minimum still marks the key.`
+      : `The true key scores 0 and every wrong guess scores higher. Leaks made the key the unique minimum.`;
+}
+
+// ---------------------------------------------------------------------------
+// Paper-scale replay tabs
+// ---------------------------------------------------------------------------
+let replaySel = 0;
+function buildReplay(): void {
+  const tabs = el('replay-tabs');
+  tabs.innerHTML = '';
+  ML_DSA_SETS.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'replay-tab';
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(i === replaySel));
+    b.textContent = s.label;
+    b.addEventListener('click', () => {
+      replaySel = i;
+      renderReplay();
+    });
+    tabs.appendChild(b);
+  });
+  renderReplay();
+}
+
+function renderReplay(): void {
+  const tabs = Array.from(el('replay-tabs').children) as HTMLButtonElement[];
+  tabs.forEach((b, i) => b.setAttribute('aria-selected', String(i === replaySel)));
+  const s = ML_DSA_SETS[replaySel];
+  el('replay-panel').innerHTML =
+    `<dl>` +
+    `<dt>Parameter set</dt><dd>${s.label} · NIST level ${s.nistLevel} · (k, l) = (${s.k}, ${s.l}) <span class="muted">[FIPS 204]</span></dd>` +
+    `<dt>Informative relations to recover a subkey</dt><dd>${fmt(RELATIONS_TO_RECOVER.min)}–${fmt(RELATIONS_TO_RECOVER.max)} <span class="badge badge-paper">paper-measured · band</span></dd>` +
+    `<dt>Reduction vs prior state of the art</dt><dd>${REDUCTION_FACTOR.min}–${REDUCTION_FACTOR.max}× fewer</dd>` +
+    `<dt>Noise tolerance (bit-flip p)</dt><dd>feasible up to ~${Math.round(NOISE_TOLERANCE_MAX_P.value * 100)}%</dd>` +
+    `</dl>` +
+    `<p class="muted">The 5,000–35,000 band is the paper's aggregate across all parameter sets and leakage-bit indices; exact per-set counts await the committed PDF (see Known Gaps).</p>`;
+}
+
+// ---------------------------------------------------------------------------
+// Assessment — three self-check questions
+// ---------------------------------------------------------------------------
+interface Quiz { q: string; options: Array<{ t: string; correct: boolean }>; why: string; }
+const QUIZZES: Quiz[] = [
+  {
+    q: 'What does the optimizer actually know?',
+    options: [
+      { t: 'The leaked relations, the public params, and its current candidate — but not the key', correct: true },
+      { t: 'The full secret key the whole time', correct: false },
+      { t: 'Nothing — it brute-forces every possibility', correct: false },
+    ],
+    why: 'The verification score is computed from relations + public data only. That key-free score is what makes local search possible.',
+  },
+  {
+    q: 'What actually "breaks" ML-DSA in this attack?',
+    options: [
+      { t: 'Side-channel leakage of the masking randomness — not a flaw in the math', correct: true },
+      { t: 'A weakness in the underlying lattice problem', correct: false },
+      { t: 'Fault injection / glitching the chip', correct: false },
+    ],
+    why: 'With no leakage there is no attack. The standard\'s math is intact; this is an implementation/leakage result, and it is not a fault attack.',
+  },
+  {
+    q: 'Why does noise not immediately kill the attack?',
+    options: [
+      { t: 'Many relations jointly constrain the key, so flipped bits average out', correct: true },
+      { t: 'An error-correcting code removes the noise first', correct: false },
+      { t: 'The key is re-randomized between signatures', correct: false },
+    ],
+    why: 'Each flipped bit only nudges the count-based score; over thousands of relations the minimum stays near the true key — which is why the paper still works at 45%.',
+  },
+];
+
+function setupAssessment(): void {
+  const box = el('quiz');
+  box.innerHTML = '';
+  QUIZZES.forEach((quiz, qi) => {
+    const block = document.createElement('div');
+    block.className = 'quiz-block';
+    block.innerHTML =
+      `<p class="quiz-q">${qi + 1}. ${quiz.q}</p>` +
+      `<div class="sc-options" role="group" aria-label="Answer choices"></div>` +
+      `<div class="sc-feedback" aria-live="polite"></div>`;
+    const opts = block.querySelector('.sc-options') as HTMLDivElement;
+    const fb = block.querySelector('.sc-feedback') as HTMLDivElement;
+    quiz.options.forEach((opt) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sc-opt';
+      b.textContent = opt.t;
+      b.addEventListener('click', () => {
+        Array.from(opts.children).forEach((c) => c.classList.remove('correct', 'incorrect'));
+        if (opt.correct) {
+          b.classList.add('correct');
+          fb.className = 'sc-feedback correct';
+          fb.textContent = `Correct — ${quiz.why}`;
+        } else {
+          b.classList.add('incorrect');
+          (Array.from(opts.children).find(
+            (c) => quiz.options[Array.from(opts.children).indexOf(c)].correct,
+          ) as HTMLElement | undefined)?.classList.add('correct');
+          fb.className = 'sc-feedback incorrect';
+          fb.textContent = `Not quite — ${quiz.why}`;
+        }
+      });
+      opts.appendChild(b);
+    });
+    box.appendChild(block);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Engine-change hook — recompute the heavier engine-dependent panels once
+// (NOT per animation frame).
+// ---------------------------------------------------------------------------
+function onEngineChanged(): void {
+  microIdx = 0;
+  computeLandscape();
+  renderContrast();
+}
+
+// ---------------------------------------------------------------------------
 // Render orchestration
 // ---------------------------------------------------------------------------
 function renderLive(): void {
@@ -556,6 +978,9 @@ function renderLive(): void {
   renderReadout();
   renderCandidate();
   drawDescent();
+  renderMicroscope();
+  drawLandscape();
+  markActivePreset();
 }
 
 function renderAll(): void {
@@ -623,6 +1048,13 @@ function init(): void {
   recompute('end');
   computeNoiseCurve();
 
+  buildTeachingPresets();
+  setupMicroscope();
+  buildAxisSelectors();
+  buildReplay();
+  setupAssessment();
+
+  onEngineChanged();
   renderStickyHeadline();
   renderSources();
   renderOverlayToySide();
@@ -633,6 +1065,7 @@ function init(): void {
     stopPlaying();
     relCount = Number((e.target as HTMLInputElement).value);
     recompute('end');
+    onEngineChanged();
     renderAll();
   });
   // recomputing the noise curve is heavier — do it on release, not every tick.
@@ -646,6 +1079,7 @@ function init(): void {
     stopPlaying();
     noiseP = Number((e.target as HTMLInputElement).value) / 100;
     recompute('end');
+    onEngineChanged();
     renderAll();
   });
 
@@ -653,6 +1087,7 @@ function init(): void {
     stopPlaying();
     seed = Number((e.target as HTMLInputElement).value);
     recompute('end');
+    onEngineChanged();
     renderAll();
   });
   el<HTMLInputElement>('seed-slider').addEventListener('change', () => {

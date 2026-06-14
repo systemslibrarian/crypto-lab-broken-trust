@@ -104,6 +104,34 @@ badges the two scales differently (`toy · illustrative` vs `paper-measured`).
 only the seeded mulberry32 PRNG (pinned by a source-scanning test). Same seed ⇒
 identical instance, relations, and descent trajectory.
 
+## Gold-standard teaching upgrades (from `chat.md`)
+
+Added on top of the base demo, all reusing the pure `model.ts` (no new model
+code, tests still 27 green):
+
+- **North-star sentence** surfaced in the TL;DR: *"One leaked masking bit per
+  signature turns ML-DSA's hidden subkey into the unique minimum of a score the
+  attacker can evaluate without the key."*
+- **Score-landscape heatmap** — sweeps any two secret coordinates (others fixed at
+  the true key), colours each by violation score, and marks the true key (the
+  minimum), the start guess, and the live candidate. Visually proves "the key is at
+  the bottom of a hill."
+- **Relation microscope** — shows one relation as a concrete object (public `a`,
+  `τ`, ⟨a,candidate⟩, ⟨a,true⟩, predicted vs observed bit, satisfied/violated).
+  "Another relation →" jumps to the next one the current candidate violates.
+- **No-leakage vs leakage contrast** — same key + candidates scored with 0 relations
+  (all flat at 0 → key invisible) vs the current relations (true key is the unique
+  minimum).
+- **Named, deep-linkable teaching presets** — Clean descent / Too few leaks / Noisy
+  but recoverable / Past toy ceiling (outcomes verified under the live seeding).
+- **Paper-scale replay tabs** — ML-DSA-44/65/87, each replaying the paper's measured
+  band (badged `paper-measured · band`; exact per-set counts still pending the PDF).
+- **Three-question assessment** — what the optimizer knows / what actually breaks
+  ML-DSA / why noise doesn't kill it.
+
+Provenance closure (`chat.md` item 4) remains blocked by the Cloudflare PDF gate —
+still requires Paul to commit `2026-472.pdf` manually.
+
 ## House style / config
 
 Vite + TS, no runtime deps; `base: '/crypto-lab-broken-trust/'`; dark default with
