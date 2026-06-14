@@ -208,24 +208,57 @@ function renderReadout(): void {
 // ---------------------------------------------------------------------------
 // Render: candidate vs true toy key
 // ---------------------------------------------------------------------------
+// Candidate/true cells are built ONCE and updated in place (not innerHTML-rebuilt
+// every frame) so a "lock-in" pulse can animate when a coordinate first matches.
+let trueCells: HTMLSpanElement[] = [];
+let candCells: HTMLSpanElement[] = [];
+let prevMatch: boolean[] = [];
+
+function buildCandidateCells(): void {
+  const trueBox = el('true-cells');
+  const candBox = el('cand-cells');
+  trueBox.innerHTML = '';
+  candBox.innerHTML = '';
+  trueCells = [];
+  candCells = [];
+  prevMatch = [];
+  for (let i = 0; i < instance.secret.length; i++) {
+    const t = document.createElement('span');
+    t.className = 'cand-cell true-cell';
+    t.textContent = signed(instance.secret[i]);
+    trueBox.appendChild(t);
+    trueCells.push(t);
+    const c = document.createElement('span');
+    c.className = 'cand-cell';
+    candBox.appendChild(c);
+    candCells.push(c);
+    prevMatch.push(false);
+  }
+}
+
 function renderCandidate(): void {
   const truth = instance.secret;
   const cand = result.trajectory[cursor].candidate;
-
-  el('true-cells').innerHTML = truth
-    .map((v) => `<span class="cand-cell true-cell">${signed(v)}</span>`)
-    .join('');
+  if (candCells.length !== truth.length) buildCandidateCells();
 
   let correct = 0;
   let linf = 0;
-  el('cand-cells').innerHTML = cand
-    .map((v, i) => {
-      const ok = v === truth[i];
-      if (ok) correct++;
-      linf = Math.max(linf, Math.abs(v - truth[i]));
-      return `<span class="cand-cell ${ok ? 'match' : 'miss'}">${signed(v)}</span>`;
-    })
-    .join('');
+  for (let i = 0; i < truth.length; i++) {
+    const ok = cand[i] === truth[i];
+    if (ok) correct++;
+    linf = Math.max(linf, Math.abs(cand[i] - truth[i]));
+    const cell = candCells[i];
+    cell.textContent = signed(cand[i]);
+    cell.classList.toggle('match', ok);
+    cell.classList.toggle('miss', !ok);
+    // Pulse the cell the moment a coordinate locks onto its true value.
+    if (ok && !prevMatch[i] && !prefersReducedMotion()) {
+      cell.classList.remove('lock');
+      void cell.offsetWidth; // reflow so the animation restarts
+      cell.classList.add('lock');
+    }
+    prevMatch[i] = ok;
+  }
 
   const pt = result.trajectory[cursor];
   el('cand-note').textContent =
@@ -1275,9 +1308,46 @@ function setupAssessment(): void {
 // ---------------------------------------------------------------------------
 function onEngineChanged(): void {
   microIdx = 0;
+  buildCandidateCells(); // true values change with the instance; resets lock-pulse state
   computeLandscape();
   computeAltRuns();
   renderContrast();
+}
+
+// ---------------------------------------------------------------------------
+// Tier stepper — shows coarse → fine progress, highlighting the active tier
+// ---------------------------------------------------------------------------
+function tierWordFor(t: number, total: number): string {
+  return t === 0 ? 'coarse' : t === total - 1 ? 'fine' : 'refine';
+}
+
+function buildTierStepper(): void {
+  const box = el('tier-stepper');
+  box.innerHTML = '';
+  for (let t = 0; t < DEFAULT_TIERS; t++) {
+    const chip = document.createElement('span');
+    chip.className = 'tier-chip';
+    chip.dataset.tier = String(t);
+    chip.textContent = `Tier ${t + 1} · ${tierWordFor(t, DEFAULT_TIERS)}`;
+    box.appendChild(chip);
+    if (t < DEFAULT_TIERS - 1) {
+      const arr = document.createElement('span');
+      arr.className = 'tier-arrow';
+      arr.setAttribute('aria-hidden', 'true');
+      arr.textContent = '→';
+      box.appendChild(arr);
+    }
+  }
+}
+
+function renderTierStepper(): void {
+  const activeTier = result.trajectory[cursor].tier;
+  const chips = Array.from(el('tier-stepper').querySelectorAll('.tier-chip')) as HTMLElement[];
+  for (const c of chips) {
+    const t = Number(c.dataset.tier);
+    c.classList.toggle('active', t === activeTier);
+    c.classList.toggle('done', t < activeTier);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1286,6 +1356,7 @@ function onEngineChanged(): void {
 function renderLive(): void {
   syncControls();
   renderReadout();
+  renderTierStepper();
   renderCandidate();
   drawDescent();
   renderMicroscope();
@@ -1359,6 +1430,7 @@ function init(): void {
   computeNoiseCurve();
 
   buildTeachingPresets();
+  buildTierStepper();
   setupMicroscope();
   buildAxisSelectors();
   setupLandscapeInteraction();

@@ -286,6 +286,23 @@ figcaption { margin-top: 0.5rem; font-size: 0.85rem; }
   background: var(--bg-elev);
 }
 .cand-cell.match { border-color: var(--ok); color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.cand-cell.lock { animation: cellLock 0.5s ease; }
+@keyframes cellLock {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 70%, transparent); }
+  40% { transform: scale(1.18); box-shadow: 0 0 0 5px color-mix(in srgb, var(--ok) 0%, transparent); }
+  100% { transform: scale(1); box-shadow: none; }
+}
+
+/* Tier stepper (coarse -> fine progress) */
+.tier-stepper { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.25rem 0 0.75rem; }
+.tier-chip {
+  font-size: 0.78rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--text-muted); background: var(--bg-elev-2);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.tier-chip.done { color: var(--text); border-color: var(--accent); opacity: 0.7; }
+.tier-chip.active { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+.tier-arrow { color: var(--text-muted); font-size: 0.8rem; }
 .cand-cell.miss { border-color: var(--accent-2); color: var(--accent-2); }
 .cand-cell.true-cell { border-color: var(--accent-paper); color: var(--accent-paper); }
 .cand-note { margin: 0.6rem 0 0; font-size: 0.9rem; }
