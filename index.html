@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
     <header class="site-header">
       <div class="header-inner">
         <span class="kicker">crypto-lab</span>
@@ -48,7 +49,7 @@
       <span class="sh-badge"><span class="badge badge-paper">paper-measured</span></span>
     </div>
 
-    <main>
+    <main id="main-content" tabindex="-1">
       <!-- 1. TL;DR -->
       <section class="card tldr" id="tldr">
         <h2>TL;DR</h2>
@@ -83,7 +84,7 @@
       <!-- 2. Live readout -->
       <section class="card" id="readout-card">
         <h2>Live readout <span class="badge badge-toy">toy · illustrative</span></h2>
-        <div class="readout" id="readout" aria-live="polite">
+        <div class="readout" id="readout">
           <div class="stat">
             <span class="stat-label">Toy seed</span>
             <span class="stat-value" id="ro-seed">—</span>
@@ -144,7 +145,7 @@
           <button type="button" class="play-btn" id="play-btn">▶ Play descent</button>
           <button type="button" class="step-btn" id="step-btn">Step ▸</button>
           <button type="button" class="reset-btn" id="reset-btn">⟲ Reset</button>
-          <span class="play-status muted" id="play-status"></span>
+          <span class="play-status muted" id="play-status" role="status" aria-live="polite"></span>
         </div>
 
         <figure class="chart-wrap">

@@ -65,6 +65,23 @@ code {
 
 a { color: var(--accent); }
 
+/* Skip link — keyboard/screen-reader bypass of the header (WCAG 2.4.1). Off-screen
+   until focused, then pinned to the top-left. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--accent);
+  color: var(--bg);
+  padding: 0.6rem 1rem;
+  border-radius: 0 0 8px 0;
+  font-weight: 700;
+  text-decoration: none;
+}
+.skip-link:focus { left: 0; }
+#main-content:focus { outline: none; }
+
 /* Consistent, visible keyboard focus for every interactive element (WCAG 2.4.7). */
 a:focus-visible,
 button:focus-visible,
@@ -363,7 +380,21 @@ td { font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) {
   .readout { grid-template-columns: 1fr 1fr; }
   .overlay-grid { grid-template-columns: 1fr; }
-  .play-btn, .step-btn, .reset-btn { padding: 0.55rem 0.9rem; }
+  .play-row { gap: 0.5rem; }
+  .play-btn, .step-btn, .reset-btn { padding: 0.6rem 1rem; flex: 1 1 auto; }
+  .play-status { flex-basis: 100%; margin-left: 0; }
+  /* Stack the label above the cells so all 8 coordinates fit the viewport width
+     and the true/guess rows stay aligned. */
+  .cand-row { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+  .cand-label { width: auto; text-align: left; }
+  .cand-cells { gap: 0.25rem; }
+  .cand-cell { min-width: 1.85rem; padding: 0.3rem 0.15rem; }
+  .sticky-headline { gap: 0.4rem 0.8rem; font-size: 0.95rem; }
+}
+
+@media (max-width: 380px) {
+  .readout { grid-template-columns: 1fr; }
+  .cand-cell { min-width: 1.7rem; font-size: 0.9rem; }
 }
 
 /* ---- Respect reduced-motion preference (WCAG 2.3.3) ---- */
