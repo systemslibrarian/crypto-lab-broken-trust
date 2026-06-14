@@ -113,6 +113,25 @@ function runEngine(): HillClimbResult {
 const dotProduct = (a: number[], v: number[]) => a.reduce((s, ai, i) => s + ai * v[i], 0);
 const candidateAt = () => result.trajectory[cursor].candidate;
 
+// A few alternate descents (different seeded starts, same relations) so the single
+// deterministic run can be seen against natural variation. Off by default.
+let showAltRuns = false;
+let altRuns: HillClimbResult[] = [];
+function computeAltRuns(): void {
+  altRuns = [];
+  for (let k = 1; k <= 4; k++) {
+    altRuns.push(
+      hillClimb(relations, {
+        n: instance.n,
+        q: instance.q,
+        bound: TOY_BOUND,
+        tiers: DEFAULT_TIERS,
+        seed: (climbSeedFor(seed) + k * 7919) >>> 0,
+      }),
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // URL state (?seed=&rels=&noise=) — deep-linkable
 // ---------------------------------------------------------------------------
@@ -232,7 +251,8 @@ function drawDescent(): void {
 
   const traj = result.trajectory;
   const lastStep = Math.max(1, traj.length - 1);
-  const yMax = Math.max(1, traj[0].score) * 1.05;
+  const altInit = showAltRuns ? altRuns.map((r) => r.trajectory[0].score) : [];
+  const yMax = Math.max(1, traj[0].score, ...altInit) * 1.05;
 
   const xPix = (i: number) => padL + (i / lastStep) * plotW;
   const yPix = (s: number) => padT + plotH - (s / yMax) * plotH;
@@ -280,43 +300,75 @@ function drawDescent(): void {
   ctx.fillStyle = muted;
   ctx.fillText('optimization step (accepted moves)', padL + plotW / 2, H - 8);
 
-  // tier boundary verticals
-  ctx.setLineDash([5, 4]);
-  ctx.strokeStyle = muted;
-  ctx.globalAlpha = 0.6;
+  // tier bands (background) — coarse → fine refinement phases. Tier is
+  // non-decreasing along the trajectory, so each tier occupies a contiguous span.
+  const tierWord = (t: number, total: number) =>
+    t === 0 ? 'coarse' : t === total - 1 ? 'fine' : 'refine';
   ctx.font = '11px sans-serif';
-  for (let i = 1; i < traj.length; i++) {
-    if (traj[i].tier !== traj[i - 1].tier) {
-      const x = xPix(i);
-      ctx.beginPath();
-      ctx.moveTo(x, padT);
-      ctx.lineTo(x, padT + plotH);
-      ctx.stroke();
+  let bandStart = 0;
+  for (let i = 1; i <= traj.length; i++) {
+    const ended = i === traj.length || traj[i].tier !== traj[bandStart].tier;
+    if (ended) {
+      const tier = traj[bandStart].tier;
+      const x0 = xPix(bandStart);
+      const x1 = xPix(i === traj.length ? lastStep : i);
+      ctx.fillStyle = tierColor(tier);
+      ctx.globalAlpha = 0.09;
+      ctx.fillRect(x0, padT, Math.max(1, x1 - x0), plotH);
+      ctx.globalAlpha = 1;
+      // boundary line + label
+      if (bandStart > 0) {
+        ctx.strokeStyle = muted;
+        ctx.globalAlpha = 0.4;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x0, padT);
+        ctx.lineTo(x0, padT + plotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
       ctx.fillStyle = muted;
-      ctx.fillText(`tier ${traj[i].tier + 1}`, x, padT + 12);
+      ctx.textAlign = 'center';
+      const cxMid = (x0 + x1) / 2;
+      ctx.fillText(`Tier ${tier + 1} · ${tierWord(tier, result.tiers)}`, cxMid, padT + 12);
+      bandStart = i;
     }
   }
-  ctx.setLineDash([]);
-  ctx.globalAlpha = 1;
 
-  // faint full curve (the whole descent that exists)
-  const drawCurve = (upto: number, color: string, width: number, alpha: number) => {
-    if (traj.length < 2) return;
+  // generic curve drawer over an arbitrary trajectory (normalized to its own length)
+  const drawTraj = (
+    t: Array<{ score: number }>,
+    upto: number,
+    color: string,
+    width: number,
+    alpha: number,
+  ) => {
+    if (t.length < 2) return;
+    const last = Math.max(1, t.length - 1);
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
     ctx.globalAlpha = alpha;
     ctx.beginPath();
     for (let i = 0; i <= upto; i++) {
-      const x = xPix(i);
-      const y = yPix(traj[i].score);
+      const x = padL + (i / last) * plotW;
+      const y = yPix(t[i].score);
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
     ctx.globalAlpha = 1;
   };
-  drawCurve(traj.length - 1, border, 2, 0.5); // full path, faint
-  drawCurve(cursor, accent, 2.5, 1); // descended-so-far, bright
+
+  // alternate runs (faded), behind the main curve
+  if (showAltRuns) {
+    for (const r of altRuns) {
+      drawTraj(r.trajectory, r.trajectory.length - 1, muted, 1.5, 0.35);
+    }
+  }
+
+  drawTraj(traj, traj.length - 1, border, 2, 0.5); // full main path, faint
+  drawTraj(traj, cursor, accent, 2.5, 1); // descended-so-far, bright
 
   // playhead dot
   const hx = xPix(cursor);
@@ -1126,6 +1178,7 @@ function setupAssessment(): void {
 function onEngineChanged(): void {
   microIdx = 0;
   computeLandscape();
+  computeAltRuns();
   renderContrast();
 }
 
@@ -1273,6 +1326,11 @@ function init(): void {
     cursor = 0;
     renderLive();
     el('play-status').textContent = '';
+  });
+
+  el<HTMLInputElement>('alt-toggle').addEventListener('change', (e) => {
+    showAltRuns = (e.target as HTMLInputElement).checked;
+    drawDescent();
   });
 }
 

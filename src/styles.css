@@ -238,6 +238,8 @@ output { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--acce
 .play-btn:hover, .step-btn:hover, .reset-btn:hover { border-color: var(--accent); }
 .play-btn[disabled] { opacity: 0.55; cursor: default; }
 .play-status { margin-left: 0.4rem; font-size: 0.88rem; }
+.toggle-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted); margin: 0 0 0.5rem; cursor: pointer; }
+.toggle-row input { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
 .chart-wrap { margin: 0; position: relative; }
 canvas { width: 100%; height: auto; background: var(--bg-elev-2); border-radius: 8px; }

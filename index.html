@@ -156,6 +156,11 @@
           <span class="play-status muted" id="play-status" role="status" aria-live="polite"></span>
         </div>
 
+        <label class="toggle-row">
+          <input type="checkbox" id="alt-toggle" />
+          <span>Overlay a few alternate descents (different random starts) to see the spread</span>
+        </label>
+
         <figure class="chart-wrap">
           <canvas id="descent-chart" width="900" height="380" role="img"
             aria-label="A line chart of the candidate's violation score versus optimization step, falling tier by tier toward zero. Vertical lines mark tier boundaries."></canvas>
