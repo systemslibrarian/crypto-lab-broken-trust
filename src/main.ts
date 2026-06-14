@@ -15,6 +15,7 @@ import {
   hillClimb,
   recovers,
   relationsToConverge,
+  runTrials,
   score,
   predictedBit,
   TOY_N,
@@ -1039,6 +1040,103 @@ function renderContrast(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Run-N-trials — success rate + steps-to-recovery histogram
+// ---------------------------------------------------------------------------
+const trialsSeedFor = (s: number) => (s * 131 + 17) >>> 0;
+
+function drawTrialsHist(steps: number[]): void {
+  const canvas = el<HTMLCanvasElement>('trials-hist');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const W = canvas.width;
+  const H = canvas.height;
+  const padL = 40;
+  const padR = 16;
+  const padT = 14;
+  const padB = 30;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  ctx.clearRect(0, 0, W, H);
+  const muted = cssVar('--text-muted');
+  const accent = cssVar('--accent');
+  const border = cssVar('--border');
+
+  if (steps.length === 0) {
+    ctx.fillStyle = muted;
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('no successful recoveries at these settings', W / 2, H / 2);
+    return;
+  }
+
+  const maxStep = Math.max(...steps);
+  const bins = Math.min(20, Math.max(6, maxStep));
+  const counts = new Array(bins).fill(0);
+  for (const s of steps) {
+    const b = Math.min(bins - 1, Math.floor((s / (maxStep + 1)) * bins));
+    counts[b]++;
+  }
+  const maxCount = Math.max(...counts, 1);
+  const bw = plotW / bins;
+
+  // axes
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  ctx.fillStyle = accent;
+  for (let b = 0; b < bins; b++) {
+    const h = (counts[b] / maxCount) * plotH;
+    ctx.fillRect(padL + b * bw + 1, padT + plotH - h, bw - 2, h);
+  }
+
+  ctx.fillStyle = muted;
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('0', padL, padT + plotH + 16);
+  ctx.fillText(`${maxStep}`, padL + plotW, padT + plotH + 16);
+  ctx.fillText('steps to recover the key →', padL + plotW / 2, H - 4);
+  ctx.textAlign = 'right';
+  ctx.fillText(`${maxCount}`, padL - 6, padT + 10);
+}
+
+function runTrialsPanel(): void {
+  const n = Number(el<HTMLSelectElement>('trials-n').value) || 25;
+  const status = el('trials-status');
+  status.textContent = `running ${n} trials…`;
+  el<HTMLButtonElement>('trials-run').disabled = true;
+  // Defer so the "running…" status paints before the synchronous compute.
+  window.setTimeout(() => {
+    const r = runTrials(relCount, noiseP, { trials: n, seed: trialsSeedFor(seed) });
+    el('trials-out').hidden = false;
+    const pct = Math.round(r.successRate * 100);
+    el('trials-rate-num').textContent = `${r.successes}/${r.trials}`;
+    el('trials-rate-label').innerHTML =
+      `keys recovered (<strong>${pct}%</strong>) at ${fmt(relCount)} relations, ` +
+      `${Math.round(noiseP * 100)}% noise`;
+    const med = r.steps.length
+      ? [...r.steps].sort((a, b) => a - b)[Math.floor(r.steps.length / 2)]
+      : 0;
+    el('trials-cap').textContent =
+      r.steps.length > 0
+        ? `Steps-to-recover across the ${r.successes} successful trials (median ≈ ${med}). ` +
+          `This is the toy's own success rate — the methodological mirror of the paper's 10/10 criterion, not a paper number.`
+        : `No trials recovered the key at these settings — try more relations or less noise.`;
+    drawTrialsHist(r.steps);
+    status.textContent = '';
+    el<HTMLButtonElement>('trials-run').disabled = false;
+  }, 30);
+}
+
+function setupTrials(): void {
+  el<HTMLButtonElement>('trials-run').addEventListener('click', runTrialsPanel);
+}
+
+// ---------------------------------------------------------------------------
 // Paper-scale replay tabs
 // ---------------------------------------------------------------------------
 let replaySel = 0;
@@ -1264,6 +1362,7 @@ function init(): void {
   setupMicroscope();
   buildAxisSelectors();
   setupLandscapeInteraction();
+  setupTrials();
   buildReplay();
   setupAssessment();
 

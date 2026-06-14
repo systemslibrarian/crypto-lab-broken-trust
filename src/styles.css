@@ -290,6 +290,18 @@ figcaption { margin-top: 0.5rem; font-size: 0.85rem; }
 .cand-cell.true-cell { border-color: var(--accent-paper); color: var(--accent-paper); }
 .cand-note { margin: 0.6rem 0 0; font-size: 0.9rem; }
 
+/* ---- Run-N-trials ---- */
+.trials-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 0.75rem 0; }
+.trials-controls label { font-size: 0.9rem; }
+.trials-controls select {
+  background: var(--bg-elev-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.3rem 0.5rem; font-size: 0.9rem;
+}
+.trials-out[hidden] { display: none; }
+.trials-rate { margin: 0.5rem 0; }
+.trials-rate-num { font-size: 2rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.trials-rate-label { margin-left: 0.5rem; color: var(--text-muted); }
+
 /* ---- Mechanism ---- */
 .mech-steps { margin: 0.5rem 0; padding-left: 1.3rem; }
 .mech-steps li { margin: 0.6rem 0; }

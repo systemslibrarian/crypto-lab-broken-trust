@@ -224,6 +224,38 @@
         </figure>
       </section>
 
+      <!-- 3d. Run-N-trials — bridge one toy run to a success RATE -->
+      <section class="card" id="trials">
+        <h2>How reliable is the toy? <span class="badge badge-toy">toy · illustrative</span></h2>
+        <p class="muted">
+          One descent recovers one key. The paper reports success over <strong>10 independent
+          keys</strong> (10/10). Run many toy trials at the current relations and noise — each a
+          fresh random subkey — to see the toy's <em>own</em> success rate by the same methodology.
+        </p>
+        <div class="trials-controls">
+          <label>Trials:
+            <select id="trials-n">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+            </select>
+          </label>
+          <button type="button" class="play-btn" id="trials-run">▶ Run trials</button>
+          <span class="muted" id="trials-status" role="status" aria-live="polite"></span>
+        </div>
+        <div class="trials-out" id="trials-out" hidden>
+          <div class="trials-rate">
+            <span class="trials-rate-num" id="trials-rate-num">—</span>
+            <span class="trials-rate-label" id="trials-rate-label"></span>
+          </div>
+          <figure class="chart-wrap">
+            <canvas id="trials-hist" width="900" height="200" role="img"
+              aria-label="Histogram of the number of steps to recover the key across the trials that succeeded."></canvas>
+            <figcaption class="muted" id="trials-cap">—</figcaption>
+          </figure>
+        </div>
+      </section>
+
       <!-- 4. Mechanism explainer -->
       <section class="card" id="mechanism">
         <h2>How one leaked bit breaks the silence</h2>
