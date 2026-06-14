@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en-US" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Anti-flash: set theme BEFORE any stylesheet so there is no light->dark flash. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          if (t !== 'light' && t !== 'dark') t = 'dark'; // dark default, no prefers-color-scheme
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Educational reconstruction of ePrint 2026/472: watch a TOY ML-DSA subkey roll down a leakage-derived scoring hill via multi-tier local optimization, alongside the paper's real-scale measured results. Recovers no real key."
+    />
+    <title>Broken Trust — Rolling an ML-DSA Subkey Downhill</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <span class="kicker">crypto-lab</span>
+        <h1 class="site-title">Broken Trust</h1>
+        <p class="site-sub">Leak one bit, and an ML-DSA subkey becomes a hill you can roll down.</p>
+      </div>
+      <button
+        id="theme-toggle"
+        class="theme-toggle"
+        type="button"
+        aria-label="Switch to light theme"
+        title="Toggle theme"
+      >
+        🌙
+      </button>
+    </header>
+
+    <!-- Persistent headline: the paper's measured result, kept visible while scrolling. -->
+    <div class="sticky-headline" id="sticky-headline" aria-hidden="true">
+      <span class="sh-item"><span class="sh-label">Relations</span><span class="sh-num sh-paper" id="sh-relations">5k–35k</span></span>
+      <span class="sh-item"><span class="sh-label">vs prior</span><span class="sh-num sh-drop" id="sh-reduction">37–68× fewer</span></span>
+      <span class="sh-item"><span class="sh-label">Survives noise</span><span class="sh-num sh-paper" id="sh-noise">45%</span></span>
+      <span class="sh-badge"><span class="badge badge-paper">paper-measured</span></span>
+    </div>
+
+    <main>
+      <!-- 1. TL;DR -->
+      <section class="card tldr" id="tldr">
+        <h2>TL;DR</h2>
+        <p>
+          ML-DSA (Dilithium) hides its key behind <strong>rejection sampling</strong>: released
+          signatures are statistically independent of the secret. Leak <strong>one bit</strong> of
+          the per-signature masking randomness and that defense collapses — each leaked bit becomes
+          an <em>informative relation</em>, and the true subkey becomes the unique
+          <strong>bottom of a hill you can roll down</strong>, no lattice reduction required.
+        </p>
+        <p>
+          The paper does it with <strong>5,000–35,000 leaks</strong>
+          (<strong>37–68× fewer</strong> than prior work) and still succeeds at
+          <strong>45% bit-flip noise</strong>.
+          <span class="badge badge-paper">paper-measured</span>
+          Below, watch a <strong>toy</strong> version actually descend.
+          <span class="badge badge-toy">toy · illustrative</span>
+        </p>
+        <ul class="tldr-points">
+          <li><strong>The mechanism:</strong> a score you can evaluate <em>without the key</em> is zero exactly at the key — so local search finds it.</li>
+          <li><strong>What's live below:</strong> a tiny self-contained engine recovering a key <em>it generated itself</em> — to make the dynamics visible.</li>
+          <li><strong>What this is not:</strong> not an attack on real ML-DSA, no real key, no side-channel capture. An educational reconstruction.</li>
+        </ul>
+        <p class="tldr-cite muted">
+          Reconstructing Schubert, Müller, Seifert, Margraf, <em>“Descent into Broken Trust:
+          Uncovering ML-DSA Subkeys with Scarce Leakage and Local Optimization”</em>, IACR ePrint
+          <a href="https://eprint.iacr.org/2026/472" target="_blank" rel="noopener">2026/472</a>.
+          Real-scale numbers are the paper's; the live descent is a toy miniature.
+        </p>
+      </section>
+
+      <!-- 2. Live readout -->
+      <section class="card" id="readout-card">
+        <h2>Live readout <span class="badge badge-toy">toy · illustrative</span></h2>
+        <div class="readout" id="readout" aria-live="polite">
+          <div class="stat">
+            <span class="stat-label">Toy seed</span>
+            <span class="stat-value" id="ro-seed">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Relations (leaks)</span>
+            <span class="stat-value" id="ro-rels">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Noise p (bit-flip)</span>
+            <span class="stat-value" id="ro-noise">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Current tier</span>
+            <span class="stat-value" id="ro-tier">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Best score (violations)</span>
+            <span class="stat-value big" id="ro-score">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Status</span>
+            <span class="stat-value" id="ro-status">—</span>
+          </div>
+        </div>
+        <p class="micro-summary">
+          <strong>Score</strong> = how many leaked relations the current candidate <em>violates</em>.
+          Noiseless, it reaches <strong>0 exactly at the true toy key</strong>. This is the toy's own
+          run — its relation counts and noise limits are <em>its own</em>, not the paper's.
+        </p>
+      </section>
+
+      <!-- 3. THE LIVE DESCENT VISUALIZER (centerpiece) -->
+      <section class="card centerpiece" id="descent">
+        <h2>Watch the descent <span class="badge badge-toy">toy · illustrative</span></h2>
+        <p class="muted">
+          A seeded guess rolls downhill: each accepted move lowers the violation score, tier by tier
+          (coarse → fine), toward the true toy subkey. Push the <strong>noise</strong> slider past the
+          toy's ceiling and the descent visibly stalls — the honest failure mode.
+        </p>
+
+        <div class="controls">
+          <label class="slider-row">
+            <span>Relations (leaks collected): <output id="rels-out">4000</output></span>
+            <input type="range" id="rels-slider" min="200" max="8000" step="200" value="4000" />
+          </label>
+          <label class="slider-row">
+            <span>Leak-bit noise p: <output id="noise-out">0%</output></span>
+            <input type="range" id="noise-slider" min="0" max="50" step="1" value="0" />
+          </label>
+          <label class="slider-row">
+            <span>Toy seed: <output id="seed-out">1</output></span>
+            <input type="range" id="seed-slider" min="1" max="200" step="1" value="1" />
+          </label>
+        </div>
+
+        <div class="play-row">
+          <button type="button" class="play-btn" id="play-btn">▶ Play descent</button>
+          <button type="button" class="step-btn" id="step-btn">Step ▸</button>
+          <button type="button" class="reset-btn" id="reset-btn">⟲ Reset</button>
+          <span class="play-status muted" id="play-status"></span>
+        </div>
+
+        <figure class="chart-wrap">
+          <canvas id="descent-chart" width="900" height="380" role="img"
+            aria-label="A line chart of the candidate's violation score versus optimization step, falling tier by tier toward zero. Vertical lines mark tier boundaries."></canvas>
+          <figcaption class="muted">
+            Score (violations) vs optimization step. Dashed verticals = tier boundaries
+            (coarse → fine refinement). The curve only ever falls — it is the hill being descended.
+          </figcaption>
+        </figure>
+
+        <!-- Candidate vs true toy key — the demo generated the key, so it can show closeness. -->
+        <div class="cand-viz">
+          <h3>Candidate subkey vs the true toy key</h3>
+          <div class="cand-row">
+            <span class="cand-label">true</span>
+            <div class="cand-cells" id="true-cells" aria-hidden="true"></div>
+          </div>
+          <div class="cand-row">
+            <span class="cand-label">guess</span>
+            <div class="cand-cells" id="cand-cells" aria-hidden="true"></div>
+          </div>
+          <p class="cand-note muted" id="cand-note">—</p>
+        </div>
+      </section>
+
+      <!-- 4. Mechanism explainer -->
+      <section class="card" id="mechanism">
+        <h2>How one leaked bit breaks the silence</h2>
+        <ol class="mech-steps">
+          <li>
+            <strong>Rejection sampling normally hides the key.</strong> ML-DSA forms a response
+            <code>z = y + c·s₁</code> from a fresh masking value <code>y</code>, the public challenge
+            <code>c</code>, and the secret subkey <code>s₁</code>. It only releases <code>z</code> when
+            <code>z</code> reveals nothing statistical about <code>s₁</code> — that independence is the
+            whole defense.
+          </li>
+          <li>
+            <strong>One leaked masking bit punctures it.</strong> Learn a single bit of <code>y</code>
+            for a signature and, paired with the public <code>(z, c)</code>, you get a constraint that
+            <em>does</em> depend on <code>s₁</code>: an <strong>informative relation</strong>.
+          </li>
+          <li>
+            <strong>Many relations carve out the key.</strong> Each relation is one yes/no fact about a
+            secret-dependent value — in the toy below, “is <code>⟨a, s⟩ ≥ τ</code>?” for a public
+            <code>a</code> and threshold <code>τ</code>. Stack thousands and only one short vector fits
+            them all.
+          </li>
+          <li>
+            <strong>The score is zero exactly at the key.</strong> Count the relations a candidate
+            <em>violates</em>. The true subkey violates none (noiseless) — it is the unique global
+            minimum — and nearby candidates violate only a few. That makes the score a smooth hill.
+          </li>
+          <li>
+            <strong>Multi-tier hill-climbing rolls down it.</strong> From a guess, take coordinate steps
+            that lower the score — big steps first (coarse tier), then progressively smaller ones (finer
+            tiers) — until you hit the bottom. No lattice reduction; no other secret component needed.
+          </li>
+        </ol>
+        <p class="surprise">
+          <strong>Why it survives noise:</strong> when leaked bits are flipped at random, the true key no
+          longer scores exactly zero — but thousands of relations still <em>jointly</em> point downhill on
+          average, so the count-based score keeps its minimum near the truth. That is why the paper still
+          recovers keys at <strong>45%</strong> noise. <span class="badge badge-paper">paper-measured</span>
+        </p>
+      </section>
+
+      <!-- 5. Paper overlay (toy vs real) -->
+      <section class="card" id="overlay">
+        <h2>Toy vs. paper — the honesty bridge</h2>
+        <p class="bridge">
+          <strong>The claim this demo makes, precisely:</strong> the toy reproduces the descent's
+          <em>qualitative</em> behaviour — monotone, multi-tier convergence to a unique zero, and graceful
+          degradation under noise — while the paper establishes the <em>quantitative</em> scale on real
+          ML-DSA. The toy's small numbers are never the paper's.
+        </p>
+        <div class="overlay-grid">
+          <div class="overlay-col toy">
+            <h3>Toy engine <span class="badge badge-toy">runs live here</span></h3>
+            <dl>
+              <dt>Subkey</dt><dd id="ov-toy-dim">—</dd>
+              <dt>Relations to converge (noiseless)</dt><dd id="ov-toy-rels">computing…</dd>
+              <dt>Descent shape</dt><dd>monotone, multi-tier, to score 0</dd>
+              <dt>Noise ceiling</dt><dd id="ov-toy-noise">its own (see noise explorer)</dd>
+            </dl>
+          </div>
+          <div class="overlay-col paper">
+            <h3>Paper (ePrint 2026/472) <span class="badge badge-paper">paper-measured</span></h3>
+            <dl>
+              <dt>Subkey</dt><dd>real ML-DSA s₁/s₂ (256-wide blocks)</dd>
+              <dt>Relations to recover</dt><dd id="ov-paper-rels">5,000–35,000</dd>
+              <dt>vs prior state of the art</dt><dd id="ov-paper-reduction">37–68× fewer</dd>
+              <dt>Noise tolerance</dt><dd id="ov-paper-noise">feasible up to ~45% bit-flip p</dd>
+            </dl>
+          </div>
+        </div>
+        <p class="muted ov-foot">
+          Same algorithm shape, two scales. The bridge is the <em>behaviour</em> — not the magnitudes.
+        </p>
+      </section>
+
+      <!-- 6. Noise explorer -->
+      <section class="card" id="noise-explorer">
+        <h2>Noise explorer</h2>
+        <p class="muted">
+          Toy recovery rate vs leak-bit noise <code>p</code> (computed live from repeated runs at a fixed
+          relation count). The toy's <strong>own</strong> ceiling is marked, alongside the paper's
+          measured <strong>45%</strong> — they need not be equal, and they aren't.
+        </p>
+        <figure class="chart-wrap">
+          <canvas id="noise-chart" width="900" height="320" role="img"
+            aria-label="A chart of toy key-recovery success rate versus leak-bit noise probability, with the toy's own ceiling and the paper's 45% tolerance marked."></canvas>
+          <figcaption class="muted" id="noise-caption">—</figcaption>
+        </figure>
+        <p class="micro-summary">
+          <strong>Why the toy's ceiling is lower than 45%:</strong> the toy is an 8-coordinate, single-start
+          search; the paper's full optimizer works at real ML-DSA scale where thousands of relations average
+          out far more noise. The toy's job is to show the descent <em>stalls</em> past its limit — not to
+          match the paper's number. <span class="badge badge-toy">toy</span> vs
+          <span class="badge badge-paper">paper-measured</span>
+        </p>
+      </section>
+
+      <!-- 7. Misconceptions FAQ -->
+      <section class="card" id="faq">
+        <h2>Misconceptions</h2>
+        <details>
+          <summary>Is ML-DSA broken?</summary>
+          <p>
+            <strong>No.</strong> This requires <em>side-channel leakage of the masking randomness</em>.
+            With no leakage there is no attack. The standard's math is intact — this is an
+            <strong>implementation / leakage</strong> result about what an attacker can do <em>once</em>
+            bits leak, not a break of the scheme on paper.
+          </p>
+        </details>
+        <details>
+          <summary>Does this need fault injection / glitching?</summary>
+          <p>
+            <strong>No.</strong> It is a <strong>leakage + local-optimization</strong> attack, not a fault
+            attack. Nothing is glitched; the attacker passively learns leaked masking bits and then
+            <em>optimizes</em> a score. (Despite the “broken trust” framing, this is not a fault-injection
+            result.)
+          </p>
+        </details>
+        <details>
+          <summary>Is the live demo recovering a real key?</summary>
+          <p>
+            <strong>No.</strong> It recovers a <strong>toy key the demo generated itself</strong>, at tiny
+            dimension, purely to illustrate the algorithm's dynamics. No real ML-DSA key, no real signatures,
+            no captured side channel. The real-scale numbers come from the paper and are badged
+            <span class="badge badge-paper">paper-measured</span>.
+          </p>
+        </details>
+        <details>
+          <summary>Why does it still work at 45% noise?</summary>
+          <p>
+            Because <em>many</em> relations jointly constrain the key. Each flipped bit only nudges the
+            count-based score; averaged over thousands of relations, the score's minimum stays near the true
+            key, so the descent still points downhill. (The toy, being tiny, gives up sooner — that's its own
+            ceiling, shown above.)
+          </p>
+        </details>
+        <details>
+          <summary>Does this need a perfect score function or lattice reduction?</summary>
+          <p>
+            <strong>No.</strong> The verification routine scores a candidate using <em>only</em> the
+            collected relations — no other secret component, no lattice reduction. That cheap, key-free score
+            is precisely what makes local optimization viable.
+          </p>
+        </details>
+      </section>
+
+      <!-- 8. Parameters & sources -->
+      <section class="card" id="sources">
+        <h2>Parameters &amp; sources</h2>
+        <p>
+          Source of truth: Carsten Schubert, Niklas Julius Müller, Jean-Pierre Seifert, and Marian Margraf,
+          <em>“Descent into Broken Trust: Uncovering ML-DSA Subkeys with Scarce Leakage and Local
+          Optimization”</em>, IACR ePrint
+          <a href="https://eprint.iacr.org/2026/472" target="_blank" rel="noopener">2026/472</a>
+          (published 2026-03-06). Full transcription with citations is in <code>PAPER-NOTES.md</code>.
+        </p>
+        <div class="table-wrap">
+          <table id="figure-table">
+            <thead>
+              <tr><th>Figure</th><th>Value</th><th>Provenance</th><th>Citation</th></tr>
+            </thead>
+            <tbody><!-- injected by main.ts --></tbody>
+          </table>
+        </div>
+        <h3>Toy parameters <span class="badge badge-toy">toy</span></h3>
+        <ul class="toy-params" id="toy-params"><!-- injected --></ul>
+        <h3>Verify it yourself</h3>
+        <pre class="verify"><code id="verify-block"></code></pre>
+      </section>
+
+      <!-- 9. Known gaps -->
+      <section class="card known-gaps" id="known-gaps">
+        <h2>Known gaps (honest by construction)</h2>
+        <ul>
+          <li>
+            <strong>The live engine is a toy miniature.</strong> Dimension 8, integer coefficients, a
+            single-start multi-tier search — not the paper's full optimizer at real ML-DSA scale. Its
+            relation counts and noise ceiling are <em>its own</em>, never the paper's 5,000–35,000 or 45%.
+          </li>
+          <li>
+            <strong>The paper's numbers are transcribed, not reproduced.</strong> 5,000–35,000 relations,
+            37–68× reduction, and ~45% noise tolerance are read from ePrint 2026/472 and shown as
+            <span class="badge badge-paper">paper-measured</span>; this page does not re-run the real attack.
+          </li>
+          <li>
+            <strong>The toy leak is a stand-in.</strong> A real informative relation comes from a leaked bit
+            of masking randomness paired with public signature data; the toy models it as a public-threshold
+            comparison on <code>⟨a, s⟩</code>. Same <em>shape</em> (one halfspace per leak), not the same
+            arithmetic.
+          </li>
+          <li>
+            <strong>This models recovery GIVEN leakage, not how leakage is obtained.</strong> Acquiring real
+            masking-bit leakage (power/EM/cache side channels) is out of scope and not simulated.
+          </li>
+          <li>
+            <strong>PDF not auto-verifiable here.</strong> The IACR PDF is served behind Cloudflare and was
+            not machine-fetchable during the build; figures were transcribed from the abstract. The committed
+            <code>2026-472.pdf</code> is the authority — see <code>BUILD-NOTES.md</code>.
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="scripture-footer">
+      <p>So whether you eat or drink or whatever you do, do it all for the glory of God. — 1 Corinthians 10:31</p>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

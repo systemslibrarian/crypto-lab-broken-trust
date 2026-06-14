@@ -1,0 +1,31 @@
+{
+  "name": "crypto-lab-broken-trust",
+  "version": "1.0.0",
+  "description": "Educational reconstruction: watch a toy ML-DSA subkey roll down a leakage-derived scoring hill via multi-tier local optimization, with a paper-data overlay of ePrint 2026/472. Recovers no real key.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "deploy": "npm run build && gh-pages -d dist"
+  },
+  "keywords": [
+    "ml-dsa",
+    "dilithium",
+    "post-quantum",
+    "side-channel",
+    "hill-climbing",
+    "leakage",
+    "education"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "gh-pages": "^6.1.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2",
+    "vitest": "^2.0.5"
+  }
+}
