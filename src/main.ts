@@ -1780,9 +1780,60 @@ function play(): void {
       playing = false;
       btn.disabled = false;
       el('play-status').textContent = result.converged ? 'recovered ✓' : 'stalled';
+      if (recovers(result, instance)) flashRecovered();
     }
   };
   requestAnimationFrame(frame);
+}
+
+/** One-shot "key recovered" flourish over the descent chart (reduced-motion aware). */
+function flashRecovered(): void {
+  const toast = el('recovered-toast');
+  toast.hidden = false;
+  toast.classList.remove('show');
+  void toast.offsetWidth; // restart the animation
+  toast.classList.add('show');
+  window.setTimeout(
+    () => {
+      toast.classList.remove('show');
+      toast.hidden = true;
+    },
+    prefersReducedMotion() ? 1400 : 1700,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Copy shareable link — surfaces the deep-linkable URL state
+// ---------------------------------------------------------------------------
+function setupShare(): void {
+  const btn = el<HTMLButtonElement>('share-btn');
+  btn.addEventListener('click', async () => {
+    writeUrlState(); // ensure the URL reflects the current seed/relations/noise
+    const url = location.href;
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(url);
+      ok = true;
+    } catch {
+      // Fallback for non-secure contexts / older browsers.
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch {
+        ok = false;
+      }
+    }
+    btn.textContent = ok ? 'Copied ✓' : 'Press Ctrl+C';
+    window.setTimeout(() => {
+      btn.textContent = '🔗 Copy link';
+    }, 1600);
+  });
 }
 
 function stopPlaying(): void {
@@ -1804,6 +1855,7 @@ function init(): void {
   setupHelp();
   setupPredict();
   setupTour();
+  setupShare();
   setupMicroscope();
   buildAxisSelectors();
   setupLandscapeInteraction();

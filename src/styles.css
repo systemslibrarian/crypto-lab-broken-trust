@@ -281,6 +281,23 @@ canvas { width: 100%; height: auto; background: var(--bg-elev-2); border-radius:
 .canvas-tip[hidden] { display: none; }
 figcaption { margin-top: 0.5rem; font-size: 0.85rem; }
 
+/* ---- Recovered flourish ---- */
+.recovered-toast {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 6;
+  background: color-mix(in srgb, var(--ok) 92%, black); color: #06210f;
+  font-weight: 800; font-size: 0.95rem; padding: 0.4rem 0.95rem; border-radius: 999px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4); pointer-events: none; opacity: 0;
+}
+.recovered-toast[hidden] { display: none; }
+.recovered-toast.show { animation: toastPop 1.7s ease forwards; }
+@keyframes toastPop {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.82); }
+  12% { opacity: 1; transform: translateX(-50%) scale(1.06); }
+  26% { transform: translateX(-50%) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* ---- Candidate vs true visualization ---- */
 .cand-viz { margin-top: 1.25rem; }
 .cand-viz h3 { margin: 0 0 0.6rem; }

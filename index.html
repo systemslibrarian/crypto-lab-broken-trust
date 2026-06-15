@@ -173,6 +173,7 @@
           <button type="button" class="play-btn" id="play-btn">▶ Play descent</button>
           <button type="button" class="step-btn" id="step-btn">Step ▸</button>
           <button type="button" class="reset-btn" id="reset-btn">⟲ Reset</button>
+          <button type="button" class="reset-btn" id="share-btn" aria-label="Copy a shareable link to this exact state">🔗 Copy link</button>
           <span class="play-status muted" id="play-status" role="status" aria-live="polite"></span>
         </div>
 
@@ -186,6 +187,7 @@
         <figure class="chart-wrap">
           <canvas id="descent-chart" width="900" height="380" role="img"
             aria-label="A line chart of the candidate's violation score versus optimization step, falling tier by tier toward zero. Vertical lines mark tier boundaries."></canvas>
+          <div class="recovered-toast" id="recovered-toast" role="status" hidden>✓ Key recovered</div>
           <figcaption class="muted">
             Score (violations) vs optimization step. Dashed verticals = tier boundaries
             (coarse → fine refinement). The curve only ever falls — it is the hill being descended.
