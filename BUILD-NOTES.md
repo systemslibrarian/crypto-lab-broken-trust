@@ -49,6 +49,23 @@ UI/copy only (no model changes; still 41 tests):
   that reveals correctness against `result.converged` and then plays; resets on any
   settings change.
 
+## Phase 3 — stronger paper fidelity & context
+
+UI/copy + data-viz only (sourced entirely from the already-pinned `paperData.ts`;
+no model changes; 41 tests):
+- **Paper results, visualized**: a log-scale **reduction bar chart** (Damm et al.
+  500k–2.4M vs this attack 5k–35k, per set, with the 37.0/42.8/68.5× factors) and a
+  **Table 2 heatmap grid** (sets × leakage index j=6–9) with exact counts and the
+  global min/max ringed. Redrawn on theme toggle.
+- **Implications & Defenses** (progressively disclosed): practical threat (high-volume
+  long-lived keys; subkey → perfect hints → full key; ML-DSA-87 most exposed for
+  subkeys), defense-in-depth (protect randomness bits; masking necessary-but-not-
+  sufficient per Qiao et al.; shielding; key rotation), and what it does NOT change
+  (Module-LWE / FIPS 204 intact; not a fault attack). Cites §7.
+- **Explicit toy ↔ paper mapping** (collapsible) in the honesty bridge: dimension,
+  relation shape, score, optimizer, success metric, relations-to-recover, noise
+  ceiling — faithful-in-shape rows vs different-in-scale rows, badged per column.
+
 ---
 
 ## Provenance — figures verified against the FULL paper text
