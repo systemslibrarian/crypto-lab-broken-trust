@@ -66,6 +66,20 @@ no model changes; 41 tests):
   relation shape, score, optimizer, success metric, relations-to-recover, noise
   ceiling — faithful-in-shape rows vs different-in-scale rows, badged per column.
 
+## Phase 4 — polish, accessibility, sharing & consistency
+
+- **Copy shareable link** button (writes the deep-linked URL; clipboard + fallback)
+  and a one-shot **"key recovered" toast** over the descent chart on a successful run.
+- **Keyboard "New start"** button for the landscape (deterministic seeded start) so
+  click-to-start isn't mouse-only; help popovers centered + width-clamped for phones.
+- **Accessibility:** all canvases carry `aria-label`s; all controls are labeled and
+  keyboard-operable with visible focus; live regions kept calm (start/end only);
+  colorblind-safe viridis on the landscape/grid; **reduced-motion** honored throughout
+  (incl. a fix so the recovered toast shows statically when motion is reduced).
+- **Mobile:** fluid canvases; readout collapses 3→2→1 columns (≤640/≤380px); candidate
+  cells stack to fit narrow widths; full-width play controls; tables scroll-wrapped.
+- README refreshed with a "What you can explore" feature list.
+
 ---
 
 ## Provenance — figures verified against the FULL paper text

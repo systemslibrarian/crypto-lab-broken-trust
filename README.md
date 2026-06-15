@@ -51,6 +51,25 @@ badged distinctly from every **paper-measured** number.
 > The IACR PDF is Cloudflare-gated and is **not redistributed in this repo**; see
 > `PAPER-NOTES.md` for the full transcription and `BUILD-NOTES.md` for the details.
 
+### What you can explore
+
+- **Guided tour** that walks the three-act story (Independence → Leakage → Optimization)
+  and drives the demo for you — auto-offered on first visit, or `?tour=1`.
+- **Live descent visualizer** — relation-count, noise, and seed sliders, play/step/reset,
+  shaded tier bands, a **coefficient lock-in** animation, and an optional alternate-run overlay.
+- **Interactive score-landscape heatmap** — *click a cell (or press “New start”) to start the
+  climb anywhere*, hover for the exact score, with a colorblind-safe **viridis** scale + legend
+  and the descent path drawn as a rolling particle.
+- **Relation microscope** (one leaked relation as a concrete object) and a **no-leakage vs.
+  leakage** contrast.
+- **Run-N-trials** — success rate + a steps-to-recover histogram (the toy's own mirror of the
+  paper's 10/10 methodology).
+- **Paper-scale replay tabs** and **visualized results** — a log-scale reduction bar chart and a
+  Table 2 heatmap grid — plus an **Implications & Defenses** section and an explicit
+  **toy ↔ paper mapping**.
+- **Deep-linkable state** with a **Copy link** button, dark/light theme, keyboard + screen-reader
+  support, colorblind-safe palettes, and `prefers-reduced-motion` support throughout.
+
 ## When to Use It
 
 - To build intuition for **why one leaked masking bit is catastrophic** even though
@@ -67,9 +86,10 @@ It does **not** assess any real system's security and recovers **no** real key.
 
 👉 **<https://systemslibrarian.github.io/crypto-lab-broken-trust/>**
 
-State is deep-linkable via the query string, e.g.
-`?seed=1&rels=4000&noise=0` reproduces a clean descent; raise `noise` past the
-toy's ceiling to watch it stall.
+First-time visitors are offered a short **guided tour** (or start it anytime from the
+TL;DR, or via `?tour=1`). State is deep-linkable via the query string, e.g.
+`?seed=1&rels=4000&noise=0` reproduces a clean descent; raise `noise` past the toy's
+ceiling to watch it stall. The **Copy link** button grabs the URL for the current state.
 
 ## How to Run Locally
 
