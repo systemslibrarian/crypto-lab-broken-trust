@@ -457,6 +457,51 @@
         </p>
       </section>
 
+      <!-- 6a. Implications & defenses -->
+      <section class="card" id="implications">
+        <h2>Implications &amp; defenses</h2>
+        <p>
+          <strong>Does this mean ML-DSA is broken? No.</strong> With no leakage there is no attack, and the
+          scheme's lattice math (FIPS 204) is untouched. What the paper sharpens is the <em>implementation</em>
+          threat: the practical bar — how many signatures an attacker must observe — is far lower than thought.
+          Details below, distilled honestly from the paper's discussion (§7).
+        </p>
+        <details>
+          <summary>What it means in practice</summary>
+          <p>
+            Organizations running certificate authorities, code-signing, or automated authentication routinely
+            produce <strong>thousands of signatures per day</strong> with one long-lived key. An attacker with a
+            side channel that leaks <strong>a single bit of the signing randomness per signature</strong> could
+            accumulate enough leaky signatures within <strong>hours to days</strong>. Each recovered subkey
+            becomes a <em>perfect hint</em> that feeds lattice reduction to recover the full signing key.
+          </p>
+          <p class="muted">
+            A counter-intuitive note from the paper: for <em>subkey</em> recovery, <strong>ML-DSA-87</strong>
+            (the highest security level) is actually the <strong>most</strong> exposed — its larger
+            <code>β = τ·η</code> means more signatures are informative, so fewer are needed (5,000 at j=6).
+          </p>
+        </details>
+        <details>
+          <summary>Defenses — defense-in-depth</summary>
+          <ul>
+            <li><strong>Treat individual randomness bits as security-critical.</strong> The whole attack rests on leaking even one bit per signature; protecting the masking randomness is the primary lever.</li>
+            <li><strong>Higher-order masking — necessary but not sufficient.</strong> It raises extraction cost, but the paper notes masking alone doesn't eliminate leakage: Qiao et al. demonstrated a template attack recovering randomness bits from a <em>masked</em> Dilithium, and imperfect higher-order extraction maps directly onto this paper's noisy-leakage model.</li>
+            <li><strong>Hardware-level shielding</strong> to reduce EM/power emanation at the source.</li>
+            <li><strong>Bound signatures per key / rotate keys.</strong> Fewer signatures under one key ⇒ fewer accumulable informative relations.</li>
+            <li><strong>Combine the above.</strong> No single measure suffices; the paper's takeaway is explicitly defense-in-depth.</li>
+          </ul>
+        </details>
+        <details>
+          <summary>What this does <em>not</em> change</summary>
+          <p>
+            The hardness of Module-LWE and the FIPS 204 security argument are intact. This is a
+            <strong>leakage + local-optimization</strong> result about what becomes possible <em>once</em> bits
+            leak — not a mathematical break, and not a fault-injection attack. No leakage, no attack.
+          </p>
+        </details>
+        <p class="muted src-note">Source: ePrint 2026/472, §7 (Conclusion &amp; Discussion).</p>
+      </section>
+
       <!-- 6b. Assessment — did the three acts land? -->
       <section class="card selfcheck" id="assessment">
         <h2>Quick self-check</h2>
