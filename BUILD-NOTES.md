@@ -33,6 +33,22 @@ UI (`main.ts` / `index.html` / `styles.css`):
 
 All new toy numbers remain badged `toy · illustrative`; zero new runtime deps.
 
+## Phase 2 — educational scaffolding & progressive disclosure
+
+UI/copy only (no model changes; still 41 tests):
+- **Guided tour** (7 steps, Independence → Leakage → Optimization) that highlights +
+  scrolls to each section and drives the Clean-descent preset/play at the
+  optimization step. Launch button in the TL;DR; first-visit nudge gated on
+  `localStorage['tour-seen']`; `?tour=1` auto-starts; Esc/arrow-key navigation,
+  focus management, `role="dialog"`.
+- **Physical analogy** ("marble in a bumpy bowl") in the mechanism, explicitly
+  labeled an analogy, not the math.
+- **Contextual help** `(?)` dots on the live-readout terms (relation, noise p, tier,
+  score) opening accessible popovers (click-outside / Esc to close).
+- **Predict widget**: a "will the score reach 0?" Yes/No bar above the play controls
+  that reveals correctness against `result.converged` and then plays; resets on any
+  settings change.
+
 ---
 
 ## Provenance — figures verified against the FULL paper text
