@@ -10,6 +10,7 @@
  */
 import './styles.css';
 import {
+  makeRng,
   makeToyInstance,
   makeRelations,
   hillClimb,
@@ -983,10 +984,25 @@ function landscapeCellFromEvent(e: MouseEvent): { i: number; j: number } | null 
   return { i, j };
 }
 
+// Keyboard-friendly alternative to clicking the heatmap: start the climb from a
+// fresh seeded point. Deterministic per (seed, counter), no ambient randomness.
+let randStartCounter = 0;
+function climbFromRandomStart(): void {
+  stopPlaying();
+  const rng = makeRng((seed * 100003 + randStartCounter++ * 911 + 7) >>> 0);
+  userStart = Array.from({ length: instance.n }, () => rng.int(-TOY_BOUND, TOY_BOUND));
+  recompute('start');
+  onEngineChanged();
+  renderAll();
+  play();
+  writeUrlState();
+}
+
 function setupLandscapeInteraction(): void {
   const canvas = el<HTMLCanvasElement>('landscape-chart');
   canvas.style.cursor = 'crosshair';
   const tip = el('landscape-tip');
+  el<HTMLButtonElement>('rand-start').addEventListener('click', climbFromRandomStart);
 
   // Click a cell → start the climb there (overrides the seeded start) and play.
   canvas.addEventListener('click', (e) => {
