@@ -1425,6 +1425,146 @@ function setupHelp(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Guided tour — Independence → Leakage → Optimization, driving the demo itself
+// ---------------------------------------------------------------------------
+interface TourStep { sel: string; title: string; body: string; before?: () => void }
+
+function startCleanDescent(): void {
+  // Click the first teaching preset ("Clean descent"): sets seed=1, 4000 relations,
+  // 0 noise, and plays the descent.
+  const first = el('teaching-presets').children[0] as HTMLButtonElement | undefined;
+  first?.click();
+}
+
+const TOUR: TourStep[] = [
+  {
+    sel: '#tldr',
+    title: 'Welcome',
+    body: 'ML-DSA hides its key behind rejection sampling. Leak one bit of the per-signature randomness and recovery becomes "roll downhill". Six quick stops — leave anytime (Esc).',
+  },
+  {
+    sel: '#mechanism',
+    title: '1 · Independence',
+    body: 'Normally every released signature is statistically independent of the secret key. That independence — from rejection sampling — is the whole defense.',
+  },
+  {
+    sel: '#microscope',
+    title: '2 · One leaked bit = one relation',
+    body: 'Learn a single bit of the masking randomness and, with the public signature data, you get one yes/no constraint on the subkey. Here is exactly one such relation.',
+  },
+  {
+    sel: '#landscape',
+    title: '3 · The key is the bottom of a hill',
+    body: 'Stack thousands of relations and the true key becomes the unique minimum of a score you can evaluate WITHOUT the key. Dark = low score (the valley). Click any cell to start a climb there.',
+  },
+  {
+    sel: '#descent',
+    title: '4 · Roll downhill',
+    body: 'Multi-tier hill-climbing descends that score to the key — big coarse steps first, then fine settling. Watching a clean run now…',
+    before: startCleanDescent,
+  },
+  {
+    sel: '#noise-explorer',
+    title: '5 · Noise',
+    body: 'The attack tolerates flipped leak bits — to a point. The toy stalls past its own ceiling (~20–30%); the paper measured recovery up to 45%.',
+  },
+  {
+    sel: '#overlay',
+    title: '6 · Toy vs. paper',
+    body: 'The toy shows the dynamics; the paper measured the real scale — 5,000–35,000 relations, 37–68× fewer than prior work. That is the honest bridge. Explore freely!',
+  },
+];
+let tourIdx = -1;
+
+function clearTourHighlight(): void {
+  document.querySelectorAll('.tour-highlight').forEach((e) => e.classList.remove('tour-highlight'));
+}
+function showTourStep(): void {
+  clearTourHighlight();
+  const step = TOUR[tourIdx];
+  try {
+    step.before?.();
+  } catch {
+    /* a driving action failing must not break the tour */
+  }
+  const target = document.querySelector(step.sel) as HTMLElement | null;
+  if (target) {
+    target.classList.add('tour-highlight');
+    target.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
+  }
+  el('tour').hidden = false;
+  el('tour-step').textContent = `${tourIdx + 1} / ${TOUR.length}`;
+  el('tour-title').textContent = step.title;
+  el('tour-body').textContent = step.body;
+  el<HTMLButtonElement>('tour-prev').disabled = tourIdx === 0;
+  el('tour-next').textContent = tourIdx === TOUR.length - 1 ? 'Done ✓' : 'Next →';
+  el<HTMLButtonElement>('tour-next').focus();
+}
+function startTour(): void {
+  el('tour-nudge').hidden = true;
+  tourIdx = 0;
+  showTourStep();
+}
+function endTour(): void {
+  clearTourHighlight();
+  el('tour').hidden = true;
+  tourIdx = -1;
+  try {
+    localStorage.setItem('tour-seen', '1');
+  } catch {
+    /* ignore */
+  }
+  el<HTMLButtonElement>('tour-start').focus();
+}
+function tourNext(): void {
+  if (tourIdx >= TOUR.length - 1) endTour();
+  else {
+    tourIdx++;
+    showTourStep();
+  }
+}
+function tourPrev(): void {
+  if (tourIdx > 0) {
+    tourIdx--;
+    showTourStep();
+  }
+}
+function setupTour(): void {
+  el<HTMLButtonElement>('tour-start').addEventListener('click', startTour);
+  el<HTMLButtonElement>('tour-next').addEventListener('click', tourNext);
+  el<HTMLButtonElement>('tour-prev').addEventListener('click', tourPrev);
+  el<HTMLButtonElement>('tour-skip').addEventListener('click', endTour);
+  el<HTMLButtonElement>('nudge-start').addEventListener('click', startTour);
+  el<HTMLButtonElement>('nudge-dismiss').addEventListener('click', () => {
+    el('tour-nudge').hidden = true;
+    try {
+      localStorage.setItem('tour-seen', '1');
+    } catch {
+      /* ignore */
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (tourIdx < 0) return;
+    if (e.key === 'Escape') endTour();
+    else if (e.key === 'ArrowRight') tourNext();
+    else if (e.key === 'ArrowLeft') tourPrev();
+  });
+}
+function maybeOfferTour(): void {
+  if (new URLSearchParams(location.search).get('tour') === '1') {
+    startTour();
+    return;
+  }
+  let seen = false;
+  try {
+    seen = localStorage.getItem('tour-seen') === '1';
+  } catch {
+    /* ignore */
+  }
+  if (!seen) el('tour-nudge').hidden = false;
+}
+
+// ---------------------------------------------------------------------------
 // Render orchestration
 // ---------------------------------------------------------------------------
 function renderLive(): void {
@@ -1507,6 +1647,7 @@ function init(): void {
   buildTierStepper();
   setupHelp();
   setupPredict();
+  setupTour();
   setupMicroscope();
   buildAxisSelectors();
   setupLandscapeInteraction();
@@ -1579,6 +1720,8 @@ function init(): void {
     showAltRuns = (e.target as HTMLInputElement).checked;
     drawDescent();
   });
+
+  maybeOfferTour();
 }
 
 if (document.readyState === 'loading') {

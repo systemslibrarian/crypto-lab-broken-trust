@@ -72,6 +72,9 @@
           One leaked masking bit per signature turns ML-DSA's hidden subkey into the
           <strong>unique minimum of a score the attacker can evaluate without the key</strong>.
         </p>
+        <p class="tldr-tour">
+          <button type="button" class="tour-launch" id="tour-start">▶ Take the 90-second guided tour</button>
+        </p>
         <ul class="tldr-points">
           <li><strong>The mechanism:</strong> a score you can evaluate <em>without the key</em> is zero exactly at the key — so local search finds it.</li>
           <li><strong>What's live below:</strong> a tiny self-contained engine recovering a key <em>it generated itself</em> — to make the dynamics visible.</li>
@@ -542,6 +545,29 @@
         </ul>
       </section>
     </main>
+
+    <!-- First-visit nudge -->
+    <div class="tour-nudge" id="tour-nudge" hidden>
+      <span>New here? A quick guided tour explains the whole idea in ~90 seconds.</span>
+      <span class="nudge-btns">
+        <button type="button" class="tour-btn primary" id="nudge-start">Start tour</button>
+        <button type="button" class="tour-btn" id="nudge-dismiss">Dismiss</button>
+      </span>
+    </div>
+
+    <!-- Guided tour card -->
+    <div class="tour-card" id="tour" hidden role="dialog" aria-label="Guided tour" aria-modal="false">
+      <div class="tour-head">
+        <span class="tour-counter" id="tour-step"></span>
+        <button type="button" class="tour-skip" id="tour-skip" aria-label="Skip the tour">Skip ✕</button>
+      </div>
+      <h3 class="tour-title" id="tour-title"></h3>
+      <p class="tour-body" id="tour-body"></p>
+      <div class="tour-nav">
+        <button type="button" class="tour-btn" id="tour-prev">← Prev</button>
+        <button type="button" class="tour-btn primary" id="tour-next">Next →</button>
+      </div>
+    </div>
 
     <footer class="scripture-footer">
       <p>So whether you eat or drink or whatever you do, do it all for the glory of God. — 1 Corinthians 10:31</p>

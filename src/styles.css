@@ -450,6 +450,54 @@ td { font-variant-numeric: tabular-nums; }
 .known-gaps ul { margin: 0; padding-left: 1.2rem; }
 .known-gaps li { margin: 0.5rem 0; }
 
+/* ---- Guided tour ---- */
+.tldr-tour { margin: 0.8rem 0 0; }
+.tour-launch {
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent); border-radius: 999px;
+  padding: 0.45rem 1rem; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+}
+.tour-launch:hover { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+
+.tour-nudge {
+  position: fixed; left: 50%; top: 0.75rem; transform: translateX(-50%); z-index: 1000;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.6rem;
+  max-width: 92vw;
+  background: var(--bg-elev); border: 1px solid var(--accent); border-radius: 12px;
+  padding: 0.5rem 1rem; box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4); font-size: 0.88rem;
+}
+.tour-nudge[hidden] { display: none; }
+.nudge-btns { display: inline-flex; gap: 0.4rem; }
+
+.tour-card {
+  position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%); z-index: 1001;
+  width: min(460px, 92vw);
+  background: var(--bg-elev); border: 1px solid var(--accent); border-radius: 12px;
+  padding: 1rem 1.1rem; box-shadow: 0 10px 44px rgba(0, 0, 0, 0.5);
+}
+.tour-card[hidden] { display: none; }
+.tour-head { display: flex; justify-content: space-between; align-items: center; }
+.tour-counter { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+.tour-skip { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.82rem; }
+.tour-skip:hover { color: var(--text); }
+.tour-title { margin: 0.3rem 0 0.4rem; font-size: 1.1rem; }
+.tour-body { margin: 0 0 0.9rem; font-size: 0.92rem; line-height: 1.55; }
+.tour-nav { display: flex; justify-content: space-between; gap: 0.5rem; }
+.tour-btn {
+  border: 1px solid var(--border); background: var(--bg-elev-2); color: var(--text);
+  border-radius: 999px; padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+.tour-btn:hover { border-color: var(--accent); }
+.tour-btn[disabled] { opacity: 0.5; cursor: default; }
+.tour-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+.tour-highlight {
+  outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 12px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent), 0 10px 40px rgba(0, 0, 0, 0.35);
+  scroll-margin: 90px;
+}
+
 /* ---- Scripture footer (Part D) ---- */
 .scripture-footer {
   border-top: 1px solid var(--border);
