@@ -92,15 +92,15 @@ let relCount = 4000;
 let noiseP = 0; // 0..0.5
 let instance: ToyInstance = makeToyInstance(seed);
 let relations: Relation[] = [];
+// When the user clicks the landscape to set a starting point, we pin an explicit
+// start vector here; null means "use the seeded random guess". Cleared on any
+// slider change so the deterministic seeded run returns.
+let userStart: number[] | null = null;
 let result: HillClimbResult = runEngine();
 let cursor = 0; // index into result.trajectory
 let microIdx = 0; // selected relation in the microscope
 let axisI = 0; // landscape x coordinate
 let axisJ = 1; // landscape y coordinate
-// When the user clicks the landscape to set a starting point, we pin an explicit
-// start vector here; null means "use the seeded random guess". Cleared on any
-// slider change so the deterministic seeded run returns.
-let userStart: number[] | null = null;
 
 function runEngine(): HillClimbResult {
   relations = makeRelations(instance, relCount, noiseP, relSeedFor(seed));
