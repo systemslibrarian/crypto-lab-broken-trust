@@ -395,6 +395,36 @@
           Same algorithm shape, two scales. The bridge is the <em>behaviour</em> — not the magnitudes.
         </p>
 
+        <details class="mapping-details">
+          <summary>Full toy ↔ paper mapping (what corresponds, and what differs)</summary>
+          <div class="table-wrap">
+            <table class="mapping-table">
+              <thead>
+                <tr>
+                  <th>Aspect</th>
+                  <th>Toy <span class="badge badge-toy">illustrative</span></th>
+                  <th>Paper <span class="badge badge-paper">measured</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Subkey dimension</td><td><code>n = 8</code></td><td><code>n = 256</code> (real s₁/s₂ block)</td></tr>
+                <tr><td>One relation (the leak)</td><td>one-sided threshold <code>⟨a,s⟩ ≥ τ</code></td><td>two-sided interval <code>|⟨c,x⟩ − z̃| ≤ β</code>, <code>β = τ·η</code></td></tr>
+                <tr><td>Public vector</td><td>ternary <code>a ∈ {−1,0,1}⁸</code></td><td>challenge <code>c ∈ {−1,0,1}²⁵⁶</code> with τ nonzero</td></tr>
+                <tr><td>Score</td><td>count of violated relations</td><td>count-based (noisy) / excess-based (exact)</td></tr>
+                <tr><td>True key is…</td><td>the unique zero of the score</td><td>the unique zero (Theorem 3.1, prob → 1)</td></tr>
+                <tr><td>Optimizer</td><td>multi-tier coordinate hill-climb</td><td>multi-tier + blocks, lateral moves, restarts, diversification</td></tr>
+                <tr><td>Success metric</td><td>success rate over random keys (Run-N-trials)</td><td>10/10 keys, fixed seed 42</td></tr>
+                <tr><td>Relations to recover</td><td>≈ 1,500 <span class="muted">(toy's own)</span></td><td>5,000–35,000 (Table 2)</td></tr>
+                <tr><td>Noise ceiling</td><td>≈ 20–30% <span class="muted">(toy's own)</span></td><td>45% (Table 4)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="muted">
+            The rows in the top half are <strong>faithful in shape</strong>; the bottom half are
+            <strong>different in scale</strong>. The toy's numbers are never the paper's.
+          </p>
+        </details>
+
         <h3 class="replay-h">Paper-scale replay <span class="badge badge-paper">paper-measured</span></h3>
         <p class="muted">
           The paper's measured band, replayed per ML-DSA parameter set (no computation here). The

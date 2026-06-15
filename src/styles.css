@@ -413,6 +413,11 @@ figcaption { margin-top: 0.5rem; font-size: 0.85rem; }
 .overlay-col dt { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
 .overlay-col dd { margin: 0 0 0.3rem; font-weight: 600; }
 .ov-foot { margin: 1rem 0 0; font-size: 0.9rem; }
+.mapping-details { margin-top: 1rem; }
+.mapping-details summary { font-size: 0.92rem; }
+.mapping-table { font-size: 0.85rem; margin-top: 0.6rem; }
+.mapping-table th { white-space: nowrap; }
+.mapping-table td:first-child { color: var(--text-muted); }
 
 /* ---- FAQ ---- */
 details {
