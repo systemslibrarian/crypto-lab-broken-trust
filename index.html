@@ -405,6 +405,36 @@
         <div class="replay-panel" id="replay-panel" role="tabpanel" aria-live="polite"></div>
       </section>
 
+      <!-- 5b. Paper results, visualized -->
+      <section class="card" id="paper-viz">
+        <h2>The paper's results, visualized <span class="badge badge-paper">paper-measured</span></h2>
+        <p class="muted">
+          The headline reduction, drawn to scale. Prior work (Damm et al. [5], regression) needed
+          <strong>500k–2.4M</strong> informative relations in the high-leakage regime; this paper's
+          hill-climbing needs <strong>5k–35k</strong> — a <strong>37–68× cut</strong>. Log scale.
+        </p>
+        <figure class="chart-wrap">
+          <canvas id="paper-bars" width="900" height="320" role="img"
+            aria-label="Log-scale bar chart comparing informative relations needed by Damm et al. versus this attack for ML-DSA-44, -65, and -87, with the reduction factor over each pair."></canvas>
+          <figcaption class="muted">
+            Prior (Damm et al. [5]) vs this attack, high-leakage regime. Reduction factor above each set.
+            Source: Tables 2–3.
+          </figcaption>
+        </figure>
+
+        <h3>Exact-setting relation counts — Table 2</h3>
+        <p class="muted">
+          The full grid behind the 5k–35k band: minimum relations for 10/10 key recovery, by parameter
+          set and leakage-bit index <code>j</code>. The band's minimum (5,000) is ML-DSA-87 at j=6; its
+          maximum (35,000) is ML-DSA-65 at j=9.
+        </p>
+        <figure class="chart-wrap">
+          <canvas id="paper-grid" width="900" height="240" role="img"
+            aria-label="A heatmap grid of minimum informative relations by ML-DSA parameter set and leakage index j from 6 to 9, with the exact counts labeled in each cell."></canvas>
+          <figcaption class="muted" id="paper-grid-cap">Table 2 — darker = fewer relations needed.</figcaption>
+        </figure>
+      </section>
+
       <!-- 6. Noise explorer -->
       <section class="card" id="noise-explorer">
         <h2>Noise explorer</h2>

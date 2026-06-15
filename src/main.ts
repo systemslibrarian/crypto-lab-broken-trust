@@ -63,6 +63,8 @@ function setupThemeToggle(): void {
     apply(now);
     drawDescent();
     drawNoise();
+    drawPaperBars();
+    drawPaperGrid();
   });
 }
 
@@ -1231,6 +1233,160 @@ function renderReplay(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Paper results, visualized — reduction bars (log scale) + Table 2 grid
+// ---------------------------------------------------------------------------
+function fmtCompact(v: number): string {
+  if (v >= 1e6) return `${(v / 1e6).toFixed(v % 1e6 === 0 ? 0 : 1)}M`;
+  if (v >= 1e3) return `${(v / 1e3).toFixed(v % 1e3 === 0 ? 0 : 1)}k`;
+  return String(v);
+}
+
+function drawPaperBars(): void {
+  const canvas = el<HTMLCanvasElement>('paper-bars');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const W = canvas.width;
+  const H = canvas.height;
+  const padL = 56;
+  const padR = 16;
+  const padT = 30;
+  const padB = 68;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  ctx.clearRect(0, 0, W, H);
+  const muted = cssVar('--text-muted');
+  const border = cssVar('--border');
+  const text = cssVar('--text');
+  const cPrior = cssVar('--accent-2');
+  const cOurs = cssVar('--accent');
+  const logMin = 3; // 1,000
+  const logMax = 6.5; // ~3.16M
+  const bottom = padT + plotH;
+  const yPix = (v: number) =>
+    padT + plotH - ((Math.max(logMin, Math.log10(v)) - logMin) / (logMax - logMin)) * plotH;
+
+  // log gridlines
+  ctx.font = '11px sans-serif';
+  for (let e = 3; e <= 6; e++) {
+    const y = yPix(10 ** e);
+    ctx.strokeStyle = border;
+    ctx.globalAlpha = 0.25;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = muted;
+    ctx.textAlign = 'right';
+    ctx.fillText(fmtCompact(10 ** e), padL - 6, y + 4);
+  }
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, bottom);
+  ctx.lineTo(padL + plotW, bottom);
+  ctx.stroke();
+
+  const sets = ML_DSA_SETS.filter((s) => s.highLeakage);
+  const groupW = plotW / sets.length;
+  const barW = groupW * 0.26;
+  sets.forEach((s, gi) => {
+    const hl = s.highLeakage!;
+    const cx = padL + groupW * gi + groupW / 2;
+    const x1 = cx - barW - 4;
+    const x2 = cx + 4;
+    ctx.fillStyle = cPrior;
+    ctx.fillRect(x1, yPix(hl.dammRelations), barW, bottom - yPix(hl.dammRelations));
+    ctx.fillStyle = cOurs;
+    ctx.fillRect(x2, yPix(hl.ourRelations), barW, bottom - yPix(hl.ourRelations));
+    ctx.fillStyle = muted;
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(fmtCompact(hl.dammRelations), x1 + barW / 2, yPix(hl.dammRelations) - 4);
+    ctx.fillText(fmtCompact(hl.ourRelations), x2 + barW / 2, yPix(hl.ourRelations) - 4);
+    ctx.fillStyle = text;
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(`${hl.factor}×`, cx, padT - 12);
+    ctx.fillStyle = muted;
+    ctx.font = '11px sans-serif';
+    ctx.fillText(s.label, cx, bottom + 18);
+    ctx.fillText(`j ≥ ${hl.jAtLeast}`, cx, bottom + 32);
+  });
+
+  // legend (bottom center)
+  const lY = bottom + 52;
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'left';
+  const legX = padL + plotW / 2 - 110;
+  ctx.fillStyle = cPrior;
+  ctx.fillRect(legX, lY - 10, 12, 12);
+  ctx.fillStyle = text;
+  ctx.fillText('Damm et al. [5]', legX + 18, lY);
+  ctx.fillStyle = cOurs;
+  ctx.fillRect(legX + 130, lY - 10, 12, 12);
+  ctx.fillStyle = text;
+  ctx.fillText('This attack', legX + 148, lY);
+}
+
+function drawPaperGrid(): void {
+  const canvas = el<HTMLCanvasElement>('paper-grid');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const W = canvas.width;
+  const H = canvas.height;
+  const padL = 92;
+  const padR = 16;
+  const padT = 28;
+  const padB = 16;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  ctx.clearRect(0, 0, W, H);
+  const muted = cssVar('--text-muted');
+  const text = cssVar('--text');
+  const sets = ML_DSA_SETS;
+  const cols = LEAKAGE_INDICES;
+  const cw = plotW / cols.length;
+  const ch = plotH / sets.length;
+  const all = sets.flatMap((s) => cols.map((j) => s.relationsByIndex[j]));
+  const mn = Math.min(...all);
+  const mx = Math.max(...all);
+
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = muted;
+  cols.forEach((j, ci) => ctx.fillText(`j = ${j}`, padL + cw * ci + cw / 2, padT - 10));
+
+  sets.forEach((s, ri) => {
+    ctx.textAlign = 'right';
+    ctx.fillStyle = text;
+    ctx.font = '12px sans-serif';
+    ctx.fillText(s.label, padL - 8, padT + ch * ri + ch / 2 + 4);
+    cols.forEach((j, ci) => {
+      const v = s.relationsByIndex[j];
+      const t = (v - mn) / (mx - mn);
+      const x = padL + cw * ci;
+      const y = padT + ch * ri;
+      ctx.fillStyle = heatColor(t);
+      ctx.fillRect(x + 1, y + 1, cw - 2, ch - 2);
+      if (v === mn || v === mx) {
+        ctx.strokeStyle = v === mn ? cssVar('--ok') : cssVar('--accent-paper');
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 2, y + 2, cw - 4, ch - 4);
+      }
+      ctx.fillStyle = t > 0.6 ? '#1f2328' : '#e6edf3';
+      ctx.textAlign = 'center';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(fmtCompact(v), x + cw / 2, y + ch / 2 + 4);
+    });
+  });
+
+  el('paper-grid-cap').textContent =
+    'Table 2 — darker = fewer relations needed. Green ring = global minimum (5,000, ML-DSA-87 j=6); ' +
+    'gold ring = global maximum (35,000, ML-DSA-65 j=9).';
+}
+
+// ---------------------------------------------------------------------------
 // Assessment — three self-check questions
 // ---------------------------------------------------------------------------
 interface Quiz { q: string; options: Array<{ t: string; correct: boolean }>; why: string; }
@@ -1661,6 +1817,8 @@ function init(): void {
   renderOverlayToySide();
   renderAll();
   drawNoise();
+  drawPaperBars();
+  drawPaperGrid();
 
   el<HTMLInputElement>('rels-slider').addEventListener('input', (e) => {
     stopPlaying();
