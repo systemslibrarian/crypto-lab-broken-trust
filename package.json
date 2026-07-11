@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:a11y": "playwright test",
     "deploy": "npm run build && gh-pages -d dist"
   },
   "keywords": [
@@ -22,6 +23,8 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.61.1",
     "@types/node": "^20.19.43",
     "gh-pages": "^6.1.1",
     "typescript": "^5.5.4",
