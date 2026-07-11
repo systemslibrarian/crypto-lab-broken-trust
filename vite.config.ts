@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, configDefaults } from 'vitest/config';
 
 // GitHub Pages serves this project under /crypto-lab-broken-trust/.
 export default defineConfig({
@@ -6,5 +6,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    include: ['src/**/*.test.ts'],
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 });
