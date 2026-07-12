@@ -141,12 +141,16 @@
 </script>
 <!-- END crypto-lab shared header -->
     <a class="skip-link" href="#main-content">Skip to main content</a>
-    <header class="site-header">
-      <div class="header-inner">
-        <span class="kicker">crypto-lab</span>
-        <h1 class="site-title">Broken Trust</h1>
-        <p class="site-sub">Leak one bit, and an ML-DSA subkey becomes a hill you can roll down.</p>
+    <header class="cl-hero">
+      <div class="cl-hero-main">
+        <h1 class="cl-hero-title">Broken Trust</h1>
+        <p class="cl-hero-sub">ML-DSA (Dilithium) · Leakage-Assisted Subkey Recovery · ePrint 2026/472</p>
+        <p class="cl-hero-desc">Watch one leaked bit of per-signature masking randomness turn each signature into a scoring relation, then descend that key-free score by multi-tier hill-climbing until the true subkey emerges — no lattice reduction.</p>
       </div>
+      <aside class="cl-hero-why" aria-label="Why it matters">
+        <span class="cl-hero-why-label">WHY IT MATTERS</span>
+        <p class="cl-hero-why-text">ML-DSA's rejection sampling is supposed to make signatures leak nothing about the key. A single leaked randomness bit per signature voids that guarantee — and this needs 37–68× fewer leaks than prior work, surviving 45% noise.</p>
+      </aside>
       <button
         id="theme-toggle"
         class="theme-toggle"
