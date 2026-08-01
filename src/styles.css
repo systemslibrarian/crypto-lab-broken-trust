@@ -106,8 +106,7 @@ summary:focus-visible {
   padding: 2rem 1rem 0;
 }
 
-/* BEGIN cl-hero standard — managed, keep in sync across fleet.
-   --text-dim maps to this lab's --text-muted. */
+/* --text-dim maps to this lab's --text-muted. */
 .cl-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:clamp(1rem,4vw,3rem);flex-wrap:wrap;}
 .cl-hero-main{flex:1 1 22rem;min-width:min(100%,20rem);}
 .cl-hero-title{margin:0;font-size:clamp(1.6rem,3.8vw,2.7rem);font-weight:700;line-height:1.1;letter-spacing:.01em;}
@@ -116,8 +115,7 @@ summary:focus-visible {
 .cl-hero-why{flex:0 1 min(40%,26rem);min-width:min(100%,15rem);border:1px solid var(--border);border-radius:10px;padding:.85rem 1.05rem;background:color-mix(in oklab,var(--accent) 6%,transparent);}
 .cl-hero-why-label{display:block;font-size:.68rem;font-weight:700;letter-spacing:.14em;color:var(--text-muted);}
 .cl-hero-why-text{margin:.35rem 0 0;font-size:.95rem;line-height:1.5;color:var(--text);}
-@media (max-width:640px){.cl-hero{flex-direction:column;}.cl-hero-why{flex-basis:auto;width:100%;}}
-/* END cl-hero standard */
+@media (max-width:640px){.cl-hero{flex-direction:column;}.cl-hero-why{flex-basis:auto;width:100%;}.cl-hero-main{flex-basis:auto;min-width:0;}}
 
 .theme-toggle {
   position: absolute;
@@ -244,6 +242,8 @@ output { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--acce
 .predict-btn {
   border: 1px solid var(--border); background-color: var(--bg-elev); color: var(--text);
   border-radius: 999px; padding: 0.3rem 0.9rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  /* 44x44 minimum tap target (WCAG 2.5.5). */
+  min-height: 44px; min-width: 44px;
 }
 .predict-btn:hover { border-color: var(--accent); }
 .predict-btn.chosen { border-color: var(--accent); background-color: color-mix(in srgb, var(--accent) 18%, transparent); }
@@ -261,6 +261,9 @@ output { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--acce
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
+  /* 44x44 minimum tap target (WCAG 2.5.5). */
+  min-height: 44px;
+  min-width: 44px;
 }
 .play-btn { background-color: color-mix(in srgb, var(--accent) 16%, transparent); }
 /* On the light accent tint, #0969da text lands ~4.1:1; use the deeper blue
