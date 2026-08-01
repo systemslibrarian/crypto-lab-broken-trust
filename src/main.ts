@@ -635,10 +635,15 @@ function renderSources(): void {
     `import { makeToyInstance, makeRelations, hillClimb, score } from './src/model';\n\n` +
     `const inst = makeToyInstance(${seed});            // a toy subkey the demo generated\n` +
     `const rels = makeRelations(inst, ${relCount}, ${noiseP}, ${relSeedFor(seed)});\n` +
-    `score(inst.secret, rels);                 // 0 exactly at the true key (noiseless)\n` +
+    `score(inst.secret, rels);                 // ${fmt(score(instance.secret, relations))} at the true key\n` +
     `const res = hillClimb(rels, { n: ${TOY_N}, q: ${TOY_Q}, bound: ${TOY_BOUND}, seed: ${climbSeedFor(seed)} });\n` +
-    `res.converged;                            // descended to score 0\n` +
-    `res.best;                                 // === inst.secret  (recovered)\n\n` +
+    // These two comments are the OUTCOME of the current settings, not a promise:
+    // at low relation counts or high noise this run does not reach 0 and/or does
+    // not land on the true key, and the snippet must say so.
+    `res.converged;                            // ${result.converged} (score reached 0?)\n` +
+    `res.best;                                 // ${
+      recovers(result, instance) ? '=== inst.secret  (recovered)' : '!== inst.secret  (not recovered)'
+    }\n\n` +
     `// Paper (ePrint 2026/472), transcribed in paperData.ts — NOT computed here:\n` +
     `//   relations to recover : ${fmt(RELATIONS_TO_RECOVER.min)}–${fmt(RELATIONS_TO_RECOVER.max)}  (Table 2)\n` +
     `//   reduction vs prior   : ${Math.floor(REDUCTION_FACTOR.min)}–${Math.floor(REDUCTION_FACTOR.max)}×  (Table 3: 37.0 / 42.8 / 68.5)\n` +
@@ -1752,6 +1757,12 @@ function renderLive(): void {
 
 function renderAll(): void {
   renderLive();
+  // The snippet now quotes this run's actual score and outcome, so it has to be
+  // rebuilt whenever the run changes — it can no longer be rendered once at
+  // startup, which is why the init-time call was removed. It belongs here rather
+  // than in renderLive() because it does not depend on `cursor`, and renderLive()
+  // fires on every animation frame.
+  renderSources();
   writeUrlState();
 }
 
@@ -1881,7 +1892,6 @@ function init(): void {
 
   onEngineChanged();
   renderStickyHeadline();
-  renderSources();
   renderOverlayToySide();
   renderAll();
   drawNoise();
