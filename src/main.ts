@@ -178,6 +178,35 @@ function syncControls(): void {
   el('seed-out').textContent = String(seed);
 }
 
+/**
+ * The verdict for the CURRENT run, computed in exactly one place.
+ *
+ *   'recovered'       score reached 0 AND the best candidate is the true subkey.
+ *   'recovered-noisy' the exact subkey was recovered, but noise keeps the score
+ *                     above 0 (flipped bits always violate) — still a recovery.
+ *   'stalled'         the descent did not land on the key.
+ *
+ * Every surface that reports the outcome (the readout, the play status line, the
+ * "key recovered" toast) reads THIS, so they cannot disagree about the same run.
+ * They used to: the play status line branched on `result.converged` alone, so a
+ * noisy-but-successful run announced "stalled" while the readout said
+ * "recovered (noisy)" and the toast flashed "✓ Key recovered".
+ */
+type Verdict = 'recovered' | 'recovered-noisy' | 'stalled';
+
+function runVerdict(): Verdict {
+  const gotTheKey = recovers(result, instance);
+  if (result.converged && gotTheKey) return 'recovered';
+  if (gotTheKey) return 'recovered-noisy';
+  return 'stalled';
+}
+
+const VERDICT_TEXT: Record<Verdict, string> = {
+  recovered: 'recovered ✓',
+  'recovered-noisy': 'recovered (noisy)',
+  stalled: 'stalled',
+};
+
 function renderReadout(): void {
   const pt = result.trajectory[cursor];
   const atEnd = cursor === result.trajectory.length - 1;
@@ -194,18 +223,13 @@ function renderReadout(): void {
   if (!atEnd) {
     statusEl.textContent = 'descending…';
     statusEl.className = 'stat-value';
-  } else if (result.converged && recovers(result, instance)) {
-    statusEl.textContent = 'recovered ✓';
-    statusEl.className = 'stat-value converged';
-    scoreEl.classList.add('converged');
-  } else if (recovers(result, instance)) {
-    statusEl.textContent = 'recovered (noisy)';
-    statusEl.className = 'stat-value converged';
-  } else {
-    statusEl.textContent = 'stalled';
-    statusEl.className = 'stat-value stalled';
-    scoreEl.classList.add('stalled');
+    return;
   }
+  const verdict = runVerdict();
+  statusEl.textContent = VERDICT_TEXT[verdict];
+  statusEl.className = verdict === 'stalled' ? 'stat-value stalled' : 'stat-value converged';
+  if (verdict === 'recovered') scoreEl.classList.add('converged');
+  else if (verdict === 'stalled') scoreEl.classList.add('stalled');
 }
 
 // ---------------------------------------------------------------------------
@@ -969,9 +993,16 @@ function drawLandscape(): void {
   ctx.fillStyle = cssVar('--accent-paper');
   ctx.fillText('◀ key', lgX + lgW + 4, lgTop + lgH - 12);
 
+  // Whether the ◯ really sits at this slice's minimum is a fact about the grid,
+  // not a promise: past the toy's noise ceiling some wrong cell scores lower.
+  const trueCellScore = landscapeGrid[idxOf(instance.secret[axisJ])][idxOf(instance.secret[axisI])];
+  const keyLabel =
+    trueCellScore === landscapeMin
+      ? '◯ true key (minimum)'
+      : `◯ true key (${fmt(trueCellScore)} — no longer this slice's minimum at ${Math.round(noiseP * 100)}% noise)`;
   el('landscape-caption').textContent =
     `Score over coords ${axisI} and ${axisJ} (others fixed at the true key) — a 2-D slice of the ` +
-    `8-D landscape. Dark = low score (the valley), yellow = high. ◯ true key (minimum), ` +
+    `8-D landscape. Dark = low score (the valley), yellow = high. ${keyLabel}, ` +
     `● rolling candidate, • start. The line is the descent path projected onto these two axes. ` +
     `Click a cell to start the climb there; range ${fmt(landscapeMin)}–${fmt(landscapeMax)} violations.`;
 }
@@ -1088,11 +1119,22 @@ function renderContrast(): void {
       );
     })
     .join('');
+  // The note must describe the bars actually drawn above it. It used to assert
+  // "the true key scores lowest … wrong guesses score higher" unconditionally
+  // whenever noise was on — but past the toy's noise ceiling that is false
+  // (e.g. at p = 0.45 the key scored 1,839 while one wrong guess scored 1,837).
+  // So decide from the rendered numbers, and say so when the key stops winning.
   const trueScore = withLeak[0].s;
-  el('contrast-leak-note').textContent =
-    noiseP > 0
-      ? `The true key scores lowest (${fmt(trueScore)} — nonzero because of ${Math.round(noiseP * 100)}% noise), and wrong guesses score higher. The minimum still marks the key.`
-      : `The true key scores 0 and every wrong guess scores higher. Leaks made the key the unique minimum.`;
+  const bestWrong = Math.min(...withLeak.slice(1).map((c) => c.s));
+  const keyIsStrictMin = trueScore < bestWrong;
+  const pct = Math.round(noiseP * 100);
+  el('contrast-leak-note').textContent = keyIsStrictMin
+    ? noiseP > 0
+      ? `The true key scores lowest (${fmt(trueScore)} — nonzero because of ${pct}% noise) and every wrong guess scores higher (best wrong guess ${fmt(bestWrong)}). The minimum still marks the key.`
+      : `The true key scores 0 and every wrong guess scores higher (best wrong guess ${fmt(bestWrong)}). Leaks made the key the unique minimum.`
+    : `The true key scores ${fmt(trueScore)} and the best wrong guess scores ${fmt(bestWrong)} — no higher than the key` +
+      `${noiseP > 0 ? `, because at ${pct}% noise the flipped bits swamp the signal` : ''}. ` +
+      `The minimum no longer marks the key.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1780,7 +1822,7 @@ function play(): void {
   if (prefersReducedMotion()) {
     cursor = last;
     renderLive();
-    el('play-status').textContent = 'done';
+    el('play-status').textContent = VERDICT_TEXT[runVerdict()];
     return;
   }
   playing = true;
@@ -1806,7 +1848,7 @@ function play(): void {
     } else {
       playing = false;
       btn.disabled = false;
-      el('play-status').textContent = result.converged ? 'recovered ✓' : 'stalled';
+      el('play-status').textContent = VERDICT_TEXT[runVerdict()];
       if (recovers(result, instance)) flashRecovered();
     }
   };
