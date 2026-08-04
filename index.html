@@ -533,7 +533,10 @@
 
         <details class="mapping-details">
           <summary>Full toy ↔ paper mapping (what corresponds, and what differs)</summary>
-          <div class="table-wrap">
+          <!-- tabindex: .table-wrap is overflow-x:auto, so at narrow widths it becomes a
+               scroll container with no focusable content — a WCAG 2.1.1 keyboard trap.
+               tabindex alone is the fix; do not promote it to a named landmark. -->
+          <div class="table-wrap" tabindex="0">
             <table class="mapping-table">
               <thead>
                 <tr>
@@ -734,7 +737,8 @@
           <a href="https://eprint.iacr.org/2026/472" target="_blank" rel="noopener">2026/472</a>
           (published 2026-03-06). Full transcription with citations is in <code>PAPER-NOTES.md</code>.
         </p>
-        <div class="table-wrap">
+        <!-- tabindex: see the note on the mapping table above. -->
+        <div class="table-wrap" tabindex="0">
           <table id="figure-table">
             <thead>
               <tr><th>Figure</th><th>Value</th><th>Provenance</th><th>Citation</th></tr>
@@ -745,7 +749,8 @@
         <h3>Toy parameters <span class="badge badge-toy">toy</span></h3>
         <ul class="toy-params" id="toy-params"><!-- injected --></ul>
         <h3>Verify it yourself</h3>
-        <pre class="verify"><code id="verify-block"></code></pre>
+        <!-- tabindex: .verify is overflow-x:auto and the snippet is wider than a phone. -->
+        <pre class="verify" tabindex="0"><code id="verify-block"></code></pre>
       </section>
 
       <!-- 9. Known gaps -->
