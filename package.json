@@ -24,7 +24,7 @@
   "license": "MIT",
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
-    "@playwright/test": "^1.61.1",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^20.19.43",
     "gh-pages": "^6.1.1",
     "typescript": "^5.5.4",
