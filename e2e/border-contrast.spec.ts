@@ -21,10 +21,9 @@ function contrast(first: Rgb, second: Rgb) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-for (const theme of ['dark', 'light'] as const) {
+for (const theme of ['dark'] as const) {
   test(`${theme} trial selector boundary retains 3:1 contrast`, async ({ page }) => {
     await page.goto('.');
-    if (theme === 'light') await page.locator('#cl-theme-toggle').click();
 
     const colors = await page.locator('.trials-controls select').evaluate((select) => {
       const style = getComputedStyle(select);

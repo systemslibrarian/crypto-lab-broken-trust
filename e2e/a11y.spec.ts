@@ -109,11 +109,6 @@ async function scan(page: Page, label: string): Promise<void> {
   expect(contrast, `measured contrast failures at: ${label}`).toEqual([]);
 }
 
-async function toLight(page: Page): Promise<void> {
-  await page.locator('#cl-theme-toggle').click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-}
-
 /**
  * Drive the interactive surfaces the untouched page never shows: the prediction
  * feedback, the descent playback and its "key recovered" toast, another
@@ -169,11 +164,10 @@ test('the reduced-motion emulation this gate depends on actually reaches the pag
   expect(reduced).toBe(true);
 });
 
-for (const theme of ['dark', 'light'] as const) {
+for (const theme of ['dark'] as const) {
   test(`no WCAG A/AA violations in ${theme} theme`, async ({ page }) => {
     await useReducedMotion(page);
     await page.goto('.');
-    if (theme === 'light') await toLight(page);
     await revealAll(page);
     await scan(page, `${theme} / first paint / 1280`);
   });
@@ -184,7 +178,6 @@ for (const theme of ['dark', 'light'] as const) {
     await useReducedMotion(page);
     await page.goto('.');
     await driveInteractiveStates(page);
-    if (theme === 'light') await toLight(page);
     await revealAll(page);
     await scan(page, `${theme} / driven / 1280`);
   });
@@ -199,7 +192,6 @@ for (const theme of ['dark', 'light'] as const) {
     await page.setViewportSize({ width: 380, height: 720 });
     await page.goto('.');
     await driveInteractiveStates(page);
-    if (theme === 'light') await toLight(page);
     await revealAll(page);
     await scan(page, `${theme} / driven / 380`);
   });

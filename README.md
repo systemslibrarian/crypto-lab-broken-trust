@@ -63,7 +63,7 @@ badged distinctly from every **paper-measured** number.
 - **Paper-scale replay tabs** and **visualized results** — a log-scale reduction bar chart and a
   Table 2 heatmap grid — plus an **Implications & Defenses** section and an explicit
   **toy ↔ paper mapping**.
-- **Deep-linkable state** with a **Copy link** button, dark/light theme, keyboard + screen-reader
+- **Deep-linkable state** with a **Copy link** button, keyboard + screen-reader
   support, colorblind-safe palettes, and `prefers-reduced-motion` support throughout.
 
 ## When to Use It
