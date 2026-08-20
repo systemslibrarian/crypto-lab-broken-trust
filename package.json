@@ -23,7 +23,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@axe-core/playwright": "^4.12.1",
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
     "@types/node": "^26.1.2",
     "gh-pages": "^6.1.1",
