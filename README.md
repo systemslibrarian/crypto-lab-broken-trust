@@ -92,6 +92,7 @@ ceiling to watch it stall. The **Copy link** button grabs the URL for the curren
 - Because a candidate subkey can be scored using only the leaked relations (zero at the true key, no lattice reduction required), any implementation that leaks must assume the secret sits at a findable global minimum.
 - The recovery tolerates substantial noise on the leaked bits (the cited paper still succeeds at ~45% noise), so an implementation that is only "mostly" constant-time or partially leaky is not safe.
 - Mistaking the toy engine's qualitative dynamics for real-scale cost: the in-browser run recovers a dimension-8 key the demo generated itself, not a real ML-DSA key, and the paper's relation counts and reduction factors are the load-bearing numbers.
+- [ElGhamrawy et al., ePrint 2026/2091 (September 22, 2026)](https://eprint.iacr.org/2026/2091) present a separate leakage-assisted ILWE analysis of ML-DSA signing with a noise-free signature-count estimate. It is not this lab's one-bit masking-randomness experiment, and its signature counts must not be substituted for this toy's relation count or the earlier paper's estimates. Both need leaked information; neither shows a generic break of ML-DSA from public signatures alone.
 
 ## Real-World Usage
 
