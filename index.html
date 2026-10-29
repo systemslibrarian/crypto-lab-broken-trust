@@ -218,25 +218,25 @@
           </div>
           <div class="stat">
             <span class="stat-label">Relations (leaks)
-              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What is a relation?">?</button><span class="help-pop" role="note" hidden>Each <strong>relation</strong> is one informative constraint from a <strong>single leaked bit</strong> of the per-signature masking randomness, paired with public signature data. More leaks ⇒ the true key stands out more sharply.</span></span>
+              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What is a relation?"></button><span class="help-pop" role="note" hidden>Each <strong>relation</strong> is one informative constraint from a <strong>single leaked bit</strong> of the per-signature masking randomness, paired with public signature data. More leaks ⇒ the true key stands out more sharply.</span></span>
             </span>
             <span class="stat-value" id="ro-rels">—</span>
           </div>
           <div class="stat">
             <span class="stat-label">Noise p (bit-flip)
-              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What is noise p?">?</button><span class="help-pop" role="note" hidden>The leaked bit is <strong>flipped with probability p</strong> (a corrupted side-channel reading). The score then never hits exactly 0 even at the true key — but many relations still point downhill on average, so recovery can survive surprising amounts of noise.</span></span>
+              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What is noise p?"></button><span class="help-pop" role="note" hidden>The leaked bit is <strong>flipped with probability p</strong> (a corrupted side-channel reading). The score then never hits exactly 0 even at the true key — but many relations still point downhill on average, so recovery can survive surprising amounts of noise.</span></span>
             </span>
             <span class="stat-value" id="ro-noise">—</span>
           </div>
           <div class="stat">
             <span class="stat-label">Current tier
-              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What are tiers?">?</button><span class="help-pop" role="note" hidden>Hill-climbing runs in <strong>tiers</strong>: <strong>coarse</strong> coordinate steps first to cross the landscape quickly, then progressively <strong>finer</strong> steps to settle into the exact key.</span></span>
+              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What are tiers?"></button><span class="help-pop" role="note" hidden>Hill-climbing runs in <strong>tiers</strong>: <strong>coarse</strong> coordinate steps first to cross the landscape quickly, then progressively <strong>finer</strong> steps to settle into the exact key.</span></span>
             </span>
             <span class="stat-value" id="ro-tier">—</span>
           </div>
           <div class="stat">
             <span class="stat-label">Best score (violations)
-              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What is the score?">?</button><span class="help-pop" role="note" hidden>The verification <strong>score</strong> = how many leaked relations the current candidate <strong>violates</strong>. Noiseless it is <strong>0 exactly at the true key</strong> — the unique global minimum that local search rolls down to. No lattice reduction needed.</span></span>
+              <span class="help-wrap"><button type="button" class="help-dot" aria-expanded="false" aria-label="What is the score?"></button><span class="help-pop" role="note" hidden>The verification <strong>score</strong> = how many leaked relations the current candidate <strong>violates</strong>. Noiseless it is <strong>0 exactly at the true key</strong> — the unique global minimum that local search rolls down to. No lattice reduction needed.</span></span>
             </span>
             <span class="stat-value big" id="ro-score">—</span>
           </div>
@@ -293,7 +293,7 @@
           <button type="button" class="play-btn" id="play-btn">▶ Play descent</button>
           <button type="button" class="step-btn" id="step-btn">Step ▸</button>
           <button type="button" class="reset-btn" id="reset-btn">⟲ Reset</button>
-          <button type="button" class="reset-btn" id="share-btn" aria-label="Copy a shareable link to this exact state">🔗 Copy link</button>
+          <button type="button" class="reset-btn share-btn" id="share-btn" aria-label="Copy link: a shareable link to this exact state">Copy link</button>
           <span class="play-status muted" id="play-status" role="status" aria-live="polite"></span>
         </div>
 

@@ -1898,9 +1898,19 @@ function setupShare(): void {
         ok = false;
       }
     }
-    btn.textContent = ok ? 'Copied ✓' : 'Press Ctrl+C';
+    // The word and the name move together, and the glyphs come from CSS. axe
+    // 4.14 compares a control's accessible name against everything a SIGHTED
+    // user sees (label-content-name-mismatch, WCAG 2.5.3 Label in Name), so a
+    // standing name stops matching the moment the word changes, and a glyph in
+    // the text has to appear in the name or leave the DOM.
+    const word = ok ? 'Copied' : 'Press Ctrl+C';
+    btn.textContent = word;
+    btn.dataset.state = ok ? 'done' : 'manual';
+    btn.setAttribute('aria-label', word);
     window.setTimeout(() => {
-      btn.textContent = '🔗 Copy link';
+      btn.textContent = 'Copy link';
+      delete btn.dataset.state;
+      btn.setAttribute('aria-label', 'Copy link: a shareable link to this exact state');
     }, 1600);
   });
 }

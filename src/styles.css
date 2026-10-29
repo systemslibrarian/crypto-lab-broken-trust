@@ -741,3 +741,15 @@ td { font-variant-numeric: tabular-nums; }
      (JS still hides it after its timeout). */
   .recovered-toast.show { animation: none !important; opacity: 1 !important; }
 }
+
+/* The share button's glyphs, drawn here rather than written as DOM text. */
+.share-btn::before { content: "\01F517\00A0"; }
+.share-btn[data-state="done"]::before { content: "\2713\00A0"; }
+.share-btn[data-state="manual"]::before { content: ""; }
+
+/* The help dot's question mark, drawn here rather than written as DOM text.
+   axe 4.14 cannot judge label-content-name-mismatch for a control whose
+   visible text is a single character and files it under `incomplete`; with the
+   glyph in CSS there is no visible text to compare and the aria-label is the
+   whole name. */
+.help-dot::before { content: "?"; }
