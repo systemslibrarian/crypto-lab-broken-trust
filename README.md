@@ -47,6 +47,16 @@ badged distinctly from every **paper-measured** number.
 > The IACR PDF is Cloudflare-gated and is **not redistributed in this repo**; see
 > `PAPER-NOTES.md` for the full transcription and `BUILD-NOTES.md` for the details.
 
+**Paper re-read 15 November 2026:** the "Implications & defenses" note on which
+parameter set is most exposed now gives the paper's own reason. ML-DSA-87 needs the
+fewest informative relations at j=6 (5,000, against 5,500 for ML-DSA-65 and 6,000
+for ML-DSA-44, Table 2), and footnote 6 to §7 attributes that to ML-DSA-44's
+*smaller* β = τ·η of 78 carrying less information per relation — not to ML-DSA-87
+holding the largest β. Per
+[FIPS 204](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf) Table 1, β is
+78, 196 and 120 for ML-DSA-44, -65 and -87, so the largest of the three is
+ML-DSA-65's.
+
 ### What you can explore
 
 - **Guided tour** that walks the three-act story (Independence → Leakage → Optimization)

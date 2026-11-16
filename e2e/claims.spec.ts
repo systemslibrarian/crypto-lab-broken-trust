@@ -691,3 +691,66 @@ test('each teaching preset lands in a self-consistent state', async ({ page }) =
     await expect(presets.nth(i)).toHaveClass(/active/);
   }
 });
+
+// ---------------------------------------------------------------------------
+// 13. The "most exposed parameter set" note is cross-checked against the two
+//     tables the page itself renders: Table 2's j=6 counts decide WHICH set is
+//     most exposed, and Table 1's β decides which set holds the largest β. The
+//     note is not allowed to award the largest β to the most exposed set.
+// ---------------------------------------------------------------------------
+test('the "most exposed" note agrees with the Table 1 β and Table 2 counts it prints', async ({
+  page,
+}) => {
+  await page.goto(CLEAN);
+
+  const tabs = page.locator('#replay-tabs button');
+  const tabCount = await tabs.count();
+  const sets: { label: string; beta: number; j6: number }[] = [];
+  for (let i = 0; i < tabCount; i++) {
+    await tabs.nth(i).click();
+    await expect(tabs.nth(i)).toHaveAttribute('aria-selected', 'true');
+    sets.push(
+      await page.evaluate(() => {
+        const panel = document.getElementById('replay-panel') as HTMLElement;
+        const dd = panel.querySelector('dd')?.textContent ?? '';
+        const heads = Array.from(panel.querySelectorAll('thead th')).map((e) => e.textContent?.trim() ?? '');
+        const cells = Array.from(panel.querySelectorAll('tbody td')).map((e) => e.textContent?.trim() ?? '');
+        const col = heads.slice(1).findIndex((h) => h.replace('j=', '') === '6');
+        return {
+          label: dd.split(' ·')[0].trim(),
+          beta: Number((dd.match(/β = τ·η = (\d+)/) ?? [])[1]),
+          j6: Number(cells[col + 1].replace(/,/g, '')),
+        };
+      }),
+    );
+  }
+  expect(sets.length).toBe(3);
+  for (const s of sets) {
+    expect(Number.isFinite(s.beta), `${s.label} printed no β`).toBe(true);
+    expect(Number.isFinite(s.j6), `${s.label} printed no j=6 count`).toBe(true);
+  }
+
+  const note = await page.evaluate(
+    () => document.getElementById('most-exposed-note')?.textContent?.replace(/\s+/g, ' ') ?? '',
+  );
+  expect(note, 'the implications note is missing').toContain('most');
+
+  // the set the note calls most exposed is the one needing the FEWEST relations at j=6
+  const fewest = sets.reduce((a, b) => (b.j6 < a.j6 ? b : a));
+  expect(note).toMatch(new RegExp(`${fewest.label}[^.]*most`));
+  // and every j=6 count the note quotes is the count that set's own table prints
+  for (const s of sets) {
+    expect(note, `${s.label} j=6 count in prose vs its Table 2 row`).toContain(
+      s.j6.toLocaleString('en-US'),
+    );
+  }
+
+  // the largest β belongs to a DIFFERENT set, and the note says whose it is
+  const largestBeta = sets.reduce((a, b) => (b.beta > a.beta ? b : a));
+  expect(largestBeta.label, 'the most exposed set must not also hold the largest β').not.toBe(
+    fewest.label,
+  );
+  expect(note).toMatch(new RegExp(`largest[^.]*${largestBeta.label}'s ${largestBeta.beta}`));
+  expect(note, `β quoted for ${fewest.label}`).toContain(`β is ${fewest.beta}`);
+  expect(note, `β quoted for the set the paper blames`).toContain(`of ${Math.min(...sets.map((s) => s.beta))}`);
+});

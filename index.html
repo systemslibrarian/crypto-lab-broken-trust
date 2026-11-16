@@ -631,10 +631,13 @@
             accumulate enough leaky signatures within <strong>hours to days</strong>. Each recovered subkey
             becomes a <em>perfect hint</em> that feeds lattice reduction to recover the full signing key.
           </p>
-          <p class="muted">
+          <p class="muted" id="most-exposed-note">
             A counter-intuitive note from the paper: for <em>subkey</em> recovery, <strong>ML-DSA-87</strong>
-            (the highest security level) is actually the <strong>most</strong> exposed — its larger
-            <code>β = τ·η</code> means more signatures are informative, so fewer are needed (5,000 at j=6).
+            (the highest security level) is actually the <strong>most</strong> exposed — 5,000 informative
+            relations at j=6, against 5,500 for ML-DSA-65 and 6,000 for ML-DSA-44. The paper's own reason
+            (footnote 6) is ML-DSA-44's <em>smaller</em> <code>β = τ·η</code> of 78, which carries less
+            information per relation — not a larger β for ML-DSA-87, whose β is 120; the largest of the
+            three is ML-DSA-65's 196 (FIPS 204 Table 1).
           </p>
         </details>
         <details>
