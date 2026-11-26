@@ -678,10 +678,15 @@ function renderStickyHeadline(): void {
   const redDisp = `${Math.floor(REDUCTION_FACTOR.min)}–${Math.floor(REDUCTION_FACTOR.max)}× fewer`;
   el('sh-relations').textContent = `${Math.round(RELATIONS_TO_RECOVER.min / 1000)}k–${Math.round(RELATIONS_TO_RECOVER.max / 1000)}k`;
   el('sh-reduction').textContent = redDisp;
-  el('sh-noise').textContent = `${Math.round(NOISE_TOLERANCE_MAX_P.value * 100)}%`;
+  el('sh-noise').textContent =
+    `${Math.round(NOISE_TOLERANCE_MAX_P.value * 100)}% · ` +
+    `${NOISY_RELATIONS.min / 1_000_000}M–${NOISY_RELATIONS.max / 1_000_000}M`;
   el('ov-paper-rels').textContent = `${fmt(RELATIONS_TO_RECOVER.min)}–${fmt(RELATIONS_TO_RECOVER.max)}`;
   el('ov-paper-reduction').textContent = redDisp;
-  el('ov-paper-noise').textContent = `feasible up to ~${Math.round(NOISE_TOLERANCE_MAX_P.value * 100)}% bit-flip p`;
+  el('ov-paper-noise').textContent =
+    `preliminary: ~${Math.round(NOISE_TOLERANCE_MAX_P.value * 100)}% p with ` +
+    `${NOISY_RELATIONS.min / 1_000_000}M–${NOISY_RELATIONS.max / 1_000_000}M relations ` +
+    `(ML-DSA-44/-87 only)`;
 }
 
 // ---------------------------------------------------------------------------
