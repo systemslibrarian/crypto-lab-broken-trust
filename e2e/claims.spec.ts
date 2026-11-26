@@ -660,8 +660,8 @@ test('the toy noise ceiling in the chart caption matches the overlay', async ({ 
   // the toy's own ceiling is badged as the toy's, and below the paper's 45%
   expect(ceiling).toBeGreaterThan(0);
   expect(ceiling).toBeLessThan(45);
-  expect(cap).toContain("paper's measured tolerance is ~45%");
-  await expect(page.locator('#sh-noise')).toHaveText('45%');
+  expect(cap).toContain("paper's preliminary ML-DSA-44/-87 result is ~45% using 2–6.5 million relations");
+  await expect(page.locator('#sh-noise')).toHaveText('45% · 2M–6.5M');
 
   // and the toy's own relation count is badged as the toy's, not the paper's
   await expect(page.locator('#ov-toy-rels')).toHaveText(/\(this toy's own\)|> grid max/);

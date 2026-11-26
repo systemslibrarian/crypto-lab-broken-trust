@@ -148,7 +148,7 @@
       </div>
       <aside class="cl-hero-why" aria-label="Why it matters">
         <span class="cl-hero-why-label">WHY IT MATTERS</span>
-        <p class="cl-hero-why-text">ML-DSA's rejection sampling is supposed to make signatures leak nothing about the key. A single leaked randomness bit per signature voids that guarantee — and this needs 37–68× fewer leaks than prior work, surviving 45% noise.</p>
+        <p class="cl-hero-why-text">ML-DSA's rejection sampling is supposed to make signatures leak nothing about the key. A single leaked randomness bit per signature voids that guarantee: noiseless recovery needs 37–68× fewer leaks than prior work; separate preliminary trials on ML-DSA-44/-87 survive 45% noise using 2–6.5 million relations.</p>
       </aside>
       <button
         id="theme-toggle"
@@ -165,7 +165,7 @@
     <div class="sticky-headline" id="sticky-headline" aria-hidden="true">
       <span class="sh-item"><span class="sh-label">Relations</span><span class="sh-num sh-paper" id="sh-relations">5k–35k</span></span>
       <span class="sh-item"><span class="sh-label">vs prior</span><span class="sh-num sh-drop" id="sh-reduction">37–68× fewer</span></span>
-      <span class="sh-item"><span class="sh-label">Survives noise</span><span class="sh-num sh-paper" id="sh-noise">45%</span></span>
+      <span class="sh-item"><span class="sh-label">Prelim. noisy trials</span><span class="sh-num sh-paper" id="sh-noise">45% · 2M–6.5M</span></span>
       <span class="sh-badge"><span class="badge badge-paper">paper-measured</span></span>
     </div>
 
@@ -181,9 +181,10 @@
           <strong>bottom of a hill you can roll down</strong>, no lattice reduction required.
         </p>
         <p>
-          The paper does it with <strong>5,000–35,000 leaks</strong>
-          (<strong>37–68× fewer</strong> than prior work) and still succeeds at
-          <strong>45% bit-flip noise</strong>.
+          The paper's noiseless experiments recover with <strong>5,000–35,000 leaks</strong>
+          (<strong>37–68× fewer</strong> than prior work). Separate preliminary experiments on
+          ML-DSA-44 and -87 still succeed at <strong>45% bit-flip noise</strong>, but use
+          <strong>2–6.5 million relations</strong>; ML-DSA-65 was not evaluated there.
           <span class="badge badge-paper">paper-measured</span>
           Below, watch a <strong>toy</strong> version actually descend.
           <span class="badge badge-toy">toy · illustrative</span>
@@ -449,9 +450,10 @@
         </ol>
         <p class="surprise">
           <strong>Why it survives noise:</strong> when leaked bits are flipped at random, the true key no
-          longer scores exactly zero — but thousands of relations still <em>jointly</em> point downhill on
+          longer scores exactly zero — but millions of relations still <em>jointly</em> point downhill on
           average, so the count-based score keeps its minimum near the truth. That is why the paper still
-          recovers keys at <strong>45%</strong> noise. <span class="badge badge-paper">paper-measured</span>
+          recovers subkeys at <strong>45%</strong> noise in preliminary ML-DSA-44/-87 trials using
+          2–6.5 million relations. <span class="badge badge-paper">paper-measured</span>
         </p>
         <p class="muted faithful-note">
           <strong>Faithful-shape note.</strong> In real ML-DSA the challenge <code>c</code> has exactly
@@ -510,7 +512,7 @@
               <dt>Subkey</dt><dd>real ML-DSA s₁/s₂ (256-wide blocks)</dd>
               <dt>Relations to recover</dt><dd id="ov-paper-rels">5,000–35,000</dd>
               <dt>vs prior state of the art</dt><dd id="ov-paper-reduction">37–68× fewer</dd>
-              <dt>Noise tolerance</dt><dd id="ov-paper-noise">feasible up to ~45% bit-flip p</dd>
+              <dt>Noise tolerance</dt><dd id="ov-paper-noise">preliminary: ~45% p with 2–6.5M relations (ML-DSA-44/-87 only)</dd>
             </dl>
           </div>
         </div>
@@ -541,7 +543,7 @@
                 <tr><td>Optimizer</td><td>multi-tier coordinate hill-climb</td><td>multi-tier + blocks, lateral moves, restarts, diversification</td></tr>
                 <tr><td>Success metric</td><td>success rate over random keys (Run-N-trials)</td><td>10/10 keys, fixed seed 42</td></tr>
                 <tr><td>Relations to recover</td><td>≈ 1,500 <span class="muted">(toy's own)</span></td><td>5,000–35,000 (Table 2)</td></tr>
-                <tr><td>Noise ceiling</td><td>≈ 20–30% <span class="muted">(toy's own)</span></td><td>45% (Table 4)</td></tr>
+                <tr><td>Noise ceiling</td><td>≈ 20–30% <span class="muted">(toy's own)</span></td><td>45%, preliminary; 2–6.5M relations, ML-DSA-44/-87 only (Table 4)</td></tr>
               </tbody>
             </table>
           </div>
@@ -606,7 +608,7 @@
         </figure>
         <p class="micro-summary">
           <strong>Why the toy's ceiling is lower than 45%:</strong> the toy is an 8-coordinate, single-start
-          search; the paper's full optimizer works at real ML-DSA scale where thousands of relations average
+          search; the paper's preliminary ML-DSA-44/-87 trials use 2–6.5 million relations to average
           out far more noise. The toy's job is to show the descent <em>stalls</em> past its limit — not to
           match the paper's number. <span class="badge badge-toy">toy</span> vs
           <span class="badge badge-paper">paper-measured</span>
@@ -702,9 +704,10 @@
           <summary>Why does it still work at 45% noise?</summary>
           <p>
             Because <em>many</em> relations jointly constrain the key. Each flipped bit only nudges the
-            count-based score; averaged over thousands of relations, the score's minimum stays near the true
-            key, so the descent still points downhill. (The toy, being tiny, gives up sooner — that's its own
-            ceiling, shown above.)
+            count-based score; in the paper's preliminary ML-DSA-44/-87 experiments, averaging over
+            2–6.5 million relations keeps the score's minimum near the true key, so the descent still points
+            downhill. ML-DSA-65 was not evaluated in that noisy experiment. (The toy, being tiny, gives up
+            sooner — that's its own ceiling, shown above.)
           </p>
         </details>
         <details>

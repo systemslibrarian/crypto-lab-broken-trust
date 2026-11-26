@@ -451,6 +451,22 @@ describe('paper-data transcription guards (ePrint 2026/472)', () => {
     expect(withNoisy.sort()).toEqual(['ML-DSA-44', 'ML-DSA-87']);
   });
 
+  it('student-facing copy keeps the preliminary 45% result separate from the noiseless cost', () => {
+    const root = new URL('../', import.meta.url);
+    const index = readFileSync(fileURLToPath(new URL('index.html', root)), 'utf8');
+    const main = readFileSync(fileURLToPath(new URL('src/main.ts', root)), 'utf8');
+    const readme = readFileSync(fileURLToPath(new URL('README.md', root)), 'utf8');
+
+    for (const copy of [index, main, readme]) {
+      expect(copy).toContain('2–6.5 million relations');
+      expect(copy).toContain('ML-DSA-44');
+      expect(copy).toContain('ML-DSA-87');
+    }
+    expect(index).toContain('ML-DSA-65 was not evaluated');
+    expect(index).not.toContain('averaged over thousands of relations');
+    expect(index).not.toContain('where thousands of relations average');
+  });
+
   it('Table 1 scheme parameters (β = τ·η, NIST levels, dimensions)', () => {
     const want = {
       'ML-DSA-44': { k: 4, l: 4, eta: 2, tau: 39, beta: 78, nistLevel: 2 },

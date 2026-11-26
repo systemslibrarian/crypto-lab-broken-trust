@@ -22,8 +22,10 @@ each leaked bit becomes an **informative relation** on a secret subkey. The pape
 then (1) builds a **verification routine** that scores a candidate subkey using
 *only* those relations — zero exactly at the true key, no lattice reduction — and
 (2) descends that score with a **multi-tier hill-climbing optimizer**. It recovers
-subkeys from **5,000–35,000 relations** (a **37–68× reduction** over prior work)
-and still succeeds at **~45% leaked-bit noise**.
+subkeys from **5,000–35,000 noiseless relations** (a **37–68× reduction** over
+prior work). In separate preliminary noisy experiments on ML-DSA-44 and -87,
+recovery at **~45% leaked-bit noise** required **2–6.5 million relations**;
+ML-DSA-65 was not evaluated there.
 
 This repo is a **hybrid**:
 
@@ -100,7 +102,7 @@ ceiling to watch it stall. The **Copy link** button grabs the URL for the curren
 
 - Leaking even a single bit of the per-signature masking randomness — for example through a side channel — turns each signature into an informative relation on a secret subkey, and the rejection-sampling independence that protects ML-DSA in the clean case no longer holds.
 - Because a candidate subkey can be scored using only the leaked relations (zero at the true key, no lattice reduction required), any implementation that leaks must assume the secret sits at a findable global minimum.
-- The recovery tolerates substantial noise on the leaked bits (the cited paper still succeeds at ~45% noise), so an implementation that is only "mostly" constant-time or partially leaky is not safe.
+- The recovery tolerates substantial noise on the leaked bits: the cited paper's preliminary ML-DSA-44/-87 experiments still succeed at ~45% noise, but require 2–6.5 million relations (and do not evaluate ML-DSA-65). An implementation that is only "mostly" constant-time or partially leaky is therefore not safe, but the 45% result must not be confused with the 5,000–35,000-relation noiseless result.
 - Mistaking the toy engine's qualitative dynamics for real-scale cost: the in-browser run recovers a dimension-8 key the demo generated itself, not a real ML-DSA key, and the paper's relation counts and reduction factors are the load-bearing numbers.
 - [ElGhamrawy et al., ePrint 2026/2091 (September 22, 2026)](https://eprint.iacr.org/2026/2091) present a separate leakage-assisted ILWE analysis of ML-DSA signing with a noise-free signature-count estimate. It is not this lab's one-bit masking-randomness experiment, and its signature counts must not be substituted for this toy's relation count or the earlier paper's estimates. Both need leaked information; neither shows a generic break of ML-DSA from public signatures alone.
 

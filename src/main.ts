@@ -591,7 +591,7 @@ function drawNoise(): void {
   el('noise-caption').textContent =
     `Toy recovery rate vs leak-bit noise p, at ${Math.min(relCount, 6000).toLocaleString()} relations ` +
     `(6 trials per point). The toy's own ceiling sits near ${Math.round(toyCeiling * 100)}% here; the ` +
-    `paper's measured tolerance is ~45% — a different scale, not a contradiction.`;
+    `paper's preliminary ML-DSA-44/-87 result is ~45% using 2–6.5 million relations — a different scale, not a contradiction.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1479,7 +1479,7 @@ const QUIZZES: Quiz[] = [
       { t: 'An error-correcting code removes the noise first', correct: false },
       { t: 'The key is re-randomized between signatures', correct: false },
     ],
-    why: 'Each flipped bit only nudges the count-based score; over thousands of relations the minimum stays near the true key — which is why the paper still works at 45%.',
+    why: 'Each flipped bit only nudges the count-based score; in the preliminary ML-DSA-44/-87 trials, 2–6.5 million relations keep the minimum near the true key even at 45% noise. ML-DSA-65 was not evaluated there.',
   },
 ];
 
@@ -1685,7 +1685,7 @@ const TOUR: TourStep[] = [
   {
     sel: '#noise-explorer',
     title: '5 · Noise',
-    body: 'The attack tolerates flipped leak bits — to a point. The toy stalls past its own ceiling (~20–30%); the paper measured recovery up to 45%.',
+    body: 'The attack tolerates flipped leak bits — to a point. The toy stalls past its own ceiling (~20–30%); preliminary paper trials on ML-DSA-44/-87 reached 45% using 2–6.5 million relations.',
   },
   {
     sel: '#overlay',
